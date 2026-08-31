@@ -65,73 +65,61 @@ var mod = {
       } catch(e) {}
     };
     
-    var setupDragonOrbs = function() {
-      if (typeof Game === "undefined" || !Game.ready || !Game.Objects) return false;
-      try {
-        for (var i in Game.Objects) {
-          var obj = Game.Objects[i];
-          if (obj && typeof obj.sell === 'function' && !obj.originalSell) {
-            obj.originalSell = obj.sell;
-            obj.sell = function(num) {
-              var lastAmount = this.amount;
-              var res = this.originalSell(num);
-              try {
-                if (this.amount < lastAmount) {
-                  var isOrb = false;
-                  if (Game.hasAura) isOrb = Game.hasAura("Dragon Orbs");
-                  else if (Game.dragonAura === 19 || Game.dragonAura2 === 19) isOrb = true;
+    try {
+      for (var i in Game.Objects) {
+        var obj = Game.Objects[i];
+        if (obj && typeof obj.sell === 'function' && !obj.originalSell) {
+          obj.originalSell = obj.sell;
+          obj.sell = function(num) {
+            var lastAmount = this.amount;
+            var res = this.originalSell(num);
+            try {
+              if (this.amount < lastAmount) {
+                var isOrb = false;
+                if (Game.hasAura) isOrb = Game.hasAura("Dragon Orbs");
+                else if (Game.dragonAura === 19 || Game.dragonAura2 === 19) isOrb = true;
+                
+                if (isOrb) {
+                  var highest = null;
+                  for (var j in Game.Objects) {
+                    if (Game.Objects[j].amount > 0) highest = Game.Objects[j];
+                  }
                   
-                  if (isOrb) {
-                    var highest = null;
-                    for (var j in Game.Objects) {
-                      if (Game.Objects[j].amount > 0) highest = Game.Objects[j];
-                    }
-                    
-                    if (highest && this.name === highest.name) {
-                      var hasForbiddenBuff = false;
-                      if (Game.buffs) {
-                        for (var bId in Game.buffs) {
-                          var bObj = Game.buffs[bId];
-                          if (bObj) {
-                            var isGozamok = (bId === "Devastation" || bObj.name === "Devastation" || (bObj.type && bObj.type.name === "Devastation"));
-                            var isRedDebuff = (bObj.type && bObj.type.deb && (bObj.type.name === "Clot" || bObj.name === "Clot"));
-                            var isMagic = (bObj.name.includes("storm") || bObj.name.includes("Everything") || bObj.name.includes("Egg"));
-                            var isGiftLimit = (bObj.name === "Gift limit" || bId === "Gift limit");
-                            
-                            if (!isGozamok && !isRedDebuff && !isMagic && !isGiftLimit) {
-                              hasForbiddenBuff = true;
-                              break;
-                            }
+                  if (highest && this.name === highest.name) {
+                    var hasForbiddenBuff = false;
+                    if (Game.buffs) {
+                      for (var bId in Game.buffs) {
+                        var bObj = Game.buffs[bId];
+                        if (bObj) {
+                          var isGozamok = (bId === "Devastation" || bObj.name === "Devastation" || (bObj.type && bObj.type.name === "Devastation"));
+                          var isRedDebuff = (bObj.type && bObj.type.deb && (bObj.type.name === "Clot" || bObj.name === "Clot"));
+                          var isMagic = (bObj.name.includes("storm") || bObj.name.includes("Everything") || bObj.name.includes("Egg"));
+                          var isGiftLimit = (bObj.name === "Gift limit" || bId === "Gift limit");
+                          
+                          if (!isGozamok && !isRedDebuff && !isMagic && !isGiftLimit) {
+                            hasForbiddenBuff = true;
+                            break;
                           }
                         }
                       }
-                      
-                      if (!hasForbiddenBuff) {
-                        var noCookie = (!Game.shimmers || Game.shimmers.length === 0);
-                        if (noCookie && Math.random() < 0.1) {
-                          new Game.shimmer("golden", "item");
-                          var iconSpec =;
-                          Game.Notify("ドラゴンオーブ", "願いが叶い黄金クッキーが出現。", iconSpec, 1);
-                        }
+                    }
+                    
+                    if (!hasForbiddenBuff) {
+                      var noCookie = (!Game.shimmers || Game.shimmers.length === 0);
+                      if (noCookie && Math.random() < 0.1) {
+                        new Game.shimmer("golden", "item");
+                        Game.Notify("ドラゴンオーブ", "願いが叶い黄金クッキーが出現。", [33, 25], 1);
                       }
                     }
                   }
                 }
-              } catch(err) {}
-              return res;
-            };
-          }
+              }
+            } catch(err) {}
+            return res;
+          };
         }
-        return true;
-      } catch(e) { return false; }
-    };
-
-    var checkInterval = setInterval(function() {
-      if (setupDragonOrbs()) {
-        clearInterval(checkInterval);
-        Game.Notify("Automation MOD", "ver 12.0", "", 1);
       }
-    }, 1000);
+    } catch(e) {}
     
     setInterval(function() {
       if (typeof Game === "undefined" || !Game.ready) return;
@@ -203,12 +191,10 @@ var mod = {
         }
       }
     }, 500);
+    
+    Game.Notify("Automation MOD", "ver 10.0", "", 1);
   },
   save: function() {},
   load: function() {}
 };
-if (typeof Game !== "undefined" && Game.RegisterMod) {
-  Game.RegisterMod(mod.id, mod);
-} else {
-  setTimeout(function() { if (typeof Game !== "undefined" && Game.RegisterMod) Game.RegisterMod(mod.id, mod); }, 2000);
-}
+Game.RegisterMod(mod.id, mod);
