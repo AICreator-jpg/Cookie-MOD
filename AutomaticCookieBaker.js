@@ -1,6 +1,5 @@
-var mod = {
-  id: 'custom_automation_mod',
-  init: function() {
+(function() {
+  var runMod = function() {
     if (document.getElementById('mobile-auto-menu')) return;
     
     var b = document.createElement("div");
@@ -38,7 +37,7 @@ var mod = {
       }
     };
     
-    function addSpells(count) {
+    window.addSpells = function(count) {
       try {
         var tower = Game.Objects["Wizard tower"];
         if (tower && tower.minigame) {
@@ -50,10 +49,10 @@ var mod = {
           if (Game.draw) Game.UpdateMenu();
         }
       } catch(e) {}
-    }
-    document.getElementById("au-g").onclick = function() { addSpells(1); };
-    document.getElementById("au-g10").onclick = function() { addSpells(10); };
-    document.getElementById("au-g100").onclick = function() { addSpells(100); };
+    };
+    document.getElementById("au-g").onclick = function() { window.addSpells(1); };
+    document.getElementById("au-g10").onclick = function() { window.addSpells(10); };
+    document.getElementById("au-g100").onclick = function() { window.addSpells(100); };
     
     document.getElementById("au-bk").onclick = function() {
       try { 
@@ -192,12 +191,17 @@ var mod = {
       }
     }, 500);
     
-    Game.Notify("Automation MOD", "ver 18.0", "", 1);
-  },
-  save: function() {},
-  load: function() {}
-};
+    Game.Notify("Automation MOD", "ver 19.0", "", 1);
+  };
 
-if (typeof Game !== "undefined" && Game.RegisterMod) {
-  Game.RegisterMod(mod.id, mod);
-}
+  if (typeof Game !== "undefined" && Game.ready) {
+    runMod();
+  } else {
+    var checkReady = setInterval(function() {
+      if (typeof Game !== "undefined" && Game.ready) {
+        clearInterval(checkReady);
+        runMod();
+      }
+    }, 1000);
+  }
+})();
