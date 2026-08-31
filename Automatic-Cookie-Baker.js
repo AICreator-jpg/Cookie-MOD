@@ -51,11 +51,13 @@ var mod = {
     
     // 施設数監視の初期化
     if (!window.lastObjectAmounts) window.lastObjectAmounts = {};
-    for (var k in Game.Objects) { window.lastObjectAmounts[Game.Objects[k].name] = Game.Objects[k].amount; }
+    if (typeof Game !== "undefined" && Game.Objects) {
+      for (var k in Game.Objects) { window.lastObjectAmounts[Game.Objects[k].name] = Game.Objects[k].amount; }
+    }
     
     // 4. 超高速ループ（16ms: 連打と1フレーム化機能）
     setInterval(function() {
-      if (typeof Game === "undefined") return;
+      if (typeof Game === "undefined" || !Game.ready) return;
       
       // 自動連打
       if (document.getElementById("au-1") && document.getElementById("au-1").checked && Game.ClickCookie) {
@@ -63,61 +65,70 @@ var mod = {
         if (Game.mouseDown !== undefined) Game.mouseDown = 0;
       }
       
-      // 常時1フレーム化機能（研究 / 砂糖玉クールタイム）
+      // 常時1フレーム化機能（研究）
       if (Game.researchT > 0) Game.researchT = 1;
+      
+      // 砂糖玉マナ回復クールタイム1フレーム化
       if (Game.lumpRefill > 0) {
         Game.lumpRefill = 1; 
         var wt = Game.Objects["Wizard tower"]; 
-        if (wt && wt.minigame) wt.minigame.lumpRefill = 1; 
-        if (Game.draw) Game.UpdateMenu();
+        if (wt && wt.minigame) {
+          wt.minigame.lumpRefill = 1; 
+          if (Game.draw) Game.UpdateMenu();
+        }
       }
       
-      // ゴザモクセット中のドラゴンオーブ特別ロジック
-      var hasGod = false; 
-      if (Game.hasGod) hasGod = Game.hasGod("ruin");
-      
-      if (hasGod) {
-        var hasForbiddenBuff = false;
-        if (Game.buffs) {
-          for (var id in Game.buffs) {
-            var buffObj = Game.buffs[id];
-            if (buffObj && id !== "Devastation" && buffObj.name !== "Devastation") {
-              if (!buffObj.name.includes("storm") && !buffObj.name.includes("Everything") && !buffObj.name.includes("Egg")) { 
-                hasForbiddenBuff = true; 
-                break; 
-              }
-            }
-          }
+      // 【修正】ゴザモク（ID: 2）セット中のドラゴンオーブ特別ロジック
+      try {
+        var hasGod = false; 
+        if (Game.hasGod && Game.Objects["Temple"] && Game.Objects["Temple"].minigame) {
+          hasGod = Game.hasGod(2); // 引数を "ruin" から IDの 2 に変更
         }
         
-        if (!hasForbiddenBuff) {
-          var highest = null; 
-          for (var j in Game.Objects) { 
-            if (Game.Objects[j].amount > 0) highest = Game.Objects[j]; 
-          }
-          for (var i in Game.Objects) {
-            var me = Game.Objects[i];
-            if (window.lastObjectAmounts[me.name] === undefined) window.lastObjectAmounts[me.name] = me.amount;
-            if (me.amount < window.lastObjectAmounts[me.name]) {
-              if (highest && me.name === highest.name) {
-                var isOrb = false;
-                if (Game.hasAura) isOrb = Game.hasAura("Dragon Orbs");
-                var noCookie = (!Game.shimmers || Game.shimmers.length === 0);
-                if (isOrb && noCookie && Math.random() < 0.1) {
-                  new Game.shimmer("golden", "item");
-                  Game.Notify("ドラゴンオーブ", "ゴザモク売却により黄金クッキーが出現！", "", 1);
+        if (hasGod) {
+          var hasForbiddenBuff = false;
+          if (Game.buffs) {
+            for (var id in Game.buffs) {
+              var buffObj = Game.buffs[id];
+              // バフ判定からゴザモクの売却バフ（Devastation）を除外
+              if (buffObj && id !== "Devastation" && buffObj.name !== "Devastation") {
+                if (!buffObj.name.includes("storm") && !buffObj.name.includes("Everything") && !buffObj.name.includes("Egg")) { 
+                  hasForbiddenBuff = true; 
+                  break; 
                 }
               }
             }
-            window.lastObjectAmounts[me.name] = me.amount;
+          }
+          
+          if (!hasForbiddenBuff) {
+            var highest = null; 
+            for (var j in Game.Objects) { 
+              if (Game.Objects[j].amount > 0) highest = Game.Objects[j]; 
+            }
+            for (var i in Game.Objects) {
+              var me = Game.Objects[i];
+              if (window.lastObjectAmounts[me.name] === undefined) window.lastObjectAmounts[me.name] = me.amount;
+              if (me.amount < window.lastObjectAmounts[me.name]) {
+                if (highest && me.name === highest.name) {
+                  var isOrb = false;
+                  if (Game.hasAura) isOrb = Game.hasAura("Dragon Orbs");
+                  var noCookie = (!Game.shimmers || Game.shimmers.length === 0);
+                  if (isOrb && noCookie && Math.random() < 0.1) {
+                    new Game.shimmer("golden", "item");
+                    Game.Notify("ドラゴンオーブ", "ゴザモク売却により黄金クッキーが出現！", "", 1);
+                  }
+                }
+              }
+              window.lastObjectAmounts[me.name] = me.amount;
+            }
           }
         }
-      }
+      } catch(err) {}
     }, 16);
     
     // 5. 中速ループ（500ms: 各種自動クリック・自動購入）
     setInterval(function() {
-      if (typeof Game === "undefined") return;
+      if (typeof Game === "undefined" || !Game.ready) return;
       
       // 金クッキー・トナカイ
       if (Game.shimmers && Game.shimmers.length > 0) {
@@ -141,12 +152,15 @@ var mod = {
         }
       }
       
-      // 自動高効率施設購入
-      if (document.getElementById("au-5") && document.getElementById("au-5").checked) {
+      // 自動高効率施設購入（安全性を強化）
+      if (document.getElementById("au-5") && document.getElementById("au-5").checked && Game.ObjectsById) {
         var bO = null, bS = -1;
         for (var i = 0; i < Game.ObjectsById.length; i++) {
-          var o = Game.ObjectsById[i], p = o.getPrice(), c = o.storedCps ? o.storedCps : (o.cps ? o.cps(o) : 0);
-          if (p > 0 && c >= 0 && c / p > bS) { bS = c / p; bO = o; }
+          var o = Game.ObjectsById[i];
+          if (!o) continue;
+          var p = o.getPrice();
+          var c = o.storedCps ? o.storedCps : (typeof o.cps === 'function' ? o.cps(o) : (o.cps || 0));
+          if (p > 0 && c >= 0 && (c / p) > bS) { bS = c / p; bO = o; }
         }
         if (bO && Game.cookies >= bO.getPrice()) bO.buy(1);
       }
@@ -155,21 +169,21 @@ var mod = {
       if (document.getElementById("au-6") && document.getElementById("au-6").checked && Game.UpgradesInStore) {
         for (var j = 0; j < Game.UpgradesInStore.length; j++) {
           var u = Game.UpgradesInStore[j];
+          if (!u) continue;
           if (u.pool == "tech" || u.pool == "toggle" || u.id == 64 || u.id == 65 || u.id == 66 || u.id == 67 || u.id == 68 || (u.id >= 222 && u.id <= 229)) continue;
           if (Game.cookies >= u.getPrice()) { u.buy(); break; }
         }
       }
       
       // 自動エルダー宣誓
-      if (document.getElementById("au-ep") && document.getElementById("au-ep").checked) {
+      if (document.getElementById("au-ep") && document.getElementById("au-ep").checked && Game.Upgrades) {
         if (Game.pledgeT === 0 && Game.Upgrades["Elder Pledge"] && Game.Upgrades["Elder Pledge"].pool === "toggle" && Game.cookies >= Game.Upgrades["Elder Pledge"].getPrice()) {
           Game.Upgrades["Elder Pledge"].buy();
         }
       }
     }, 500);
     
-    // バージョンを追加した通知メッセージ
-    Game.Notify("自動化MOD", "すべての機能が正常にロードされました！ (ver 4.0)", "", 1);
+    Game.Notify("自動化MOD", "すべての機能が正常にロードされました！ (ver 6.0)", "", 1);
   },
   save: function() {},
   load: function() {}
