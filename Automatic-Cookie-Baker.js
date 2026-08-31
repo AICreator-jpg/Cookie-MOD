@@ -78,13 +78,12 @@ var mod = {
         }
       }
       
-      // 【完全修正】ゴザモク（ID 2）の直接スロット判定ロジック
+      // 【完全修正】ゴザモク（ID 2）の確定スロット判定およびドラゴンオーブ連動
       try {
         var hasGod = false;
         var temple = Game.Objects["Temple"];
         if (temple && temple.minigame) {
-          var god = temple.minigame.godsById[2]; // ID 2のゴザモクデータを取得
-          // slotが 0(ダイヤ), 1(ルビー), 2(ジェイド) のいずれかにセットされていればtrue
+          var god = temple.minigame.godsById[2]; // 修正：[2]を付与してゴザモクを確実に指定
           if (god && (god.slot === 0 || god.slot === 1 || god.slot === 2)) {
             hasGod = true;
           }
@@ -95,8 +94,8 @@ var mod = {
           if (Game.buffs) {
             for (var id in Game.buffs) {
               var buffObj = Game.buffs[id];
-              // バフ判定からゴザモクの売却バフ（Devastation）を除外隔離
-              if (buffObj && id !== "Devastation" && buffObj.name !== "Devastation") {
+              // 修正：ゴザモクの売却バフ（Devastation）を内部名と表示名から網羅的に除外隔離
+              if (buffObj && id !== "Devastation" && buffObj.name !== "Devastation" && (!buffObj.type || buffObj.type.name !== "Devastation")) {
                 if (!buffObj.name.includes("storm") && !buffObj.name.includes("Everything") && !buffObj.name.includes("Egg")) { 
                   hasForbiddenBuff = true; 
                   break; 
@@ -188,10 +187,9 @@ var mod = {
       }
     }, 500);
     
-    Game.Notify("自動化MOD", "すべての機能が正常にロードされました！ (ver 8.0)", "", 1);
+    Game.Notify("自動化MOD", "すべての機能が正常にロードされました！ (ver 9.0)", "", 1);
   },
   save: function() {},
   load: function() {}
 };
 Game.RegisterMod(mod.id, mod);
-
