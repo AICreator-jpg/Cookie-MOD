@@ -1,5 +1,6 @@
 if (typeof window.CustomAutomationMod === "undefined") {
   window.CustomAutomationMod = {
+    id: 'custom_automation_mod',
     init: function() {
       if (document.getElementById('mobile-auto-menu')) return;
       
@@ -68,7 +69,7 @@ if (typeof window.CustomAutomationMod === "undefined") {
       try {
         for (var i in Game.Objects) {
           var obj = Game.Objects[i];
-          if (obj && typeof obj.sell === 'function' && !obj.originalSell) {
+          if (obj && typeof obj.sell === "function" && !obj.originalSell) {
             obj.originalSell = obj.sell;
             obj.sell = function(num) {
               var lastAmount = this.amount;
@@ -136,7 +137,7 @@ if (typeof window.CustomAutomationMod === "undefined") {
             var o = Game.ObjectsById[i];
             if (!o) continue;
             var p = o.getPrice();
-            var c = o.storedCps ? o.storedCps : (typeof o.cps === 'function' ? o.cps(o) : (o.cps || 0));
+            var c = o.storedCps ? o.storedCps : (typeof o.cps === "function" ? o.cps(o) : (o.cps || 0));
             if (p > 0 && c >= 0 && (c / p) > bS) { bS = c / p; bO = o; }
           }
           if (bO && Game.cookies >= bO.getPrice()) {
@@ -198,14 +199,13 @@ if (typeof window.CustomAutomationMod === "undefined") {
       Game.Notify("Automation MOD", "ver 26.0", "", 1);
     }
   };
-
-  if (typeof Game !== "undefined" && Game.ready) {
-    window.CustomAutomationMod.init();
+    if (typeof Game !== "undefined" && Game.ready) {
+    Game.LoadMod(window.CustomAutomationMod);
   } else {
     var checkReady = setInterval(function() {
       if (typeof Game !== "undefined" && Game.ready) {
         clearInterval(checkReady);
-        window.CustomAutomationMod.init();
+        Game.LoadMod(window.CustomAutomationMod);
       }
     }, 1000);
   }
