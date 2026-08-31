@@ -78,11 +78,16 @@ var mod = {
         }
       }
       
-      // 【修正】ゴザモク（ID: 2）セット中のドラゴンオーブ特別ロジック
+      // 【完全修正】ゴザモク（ID 2）の直接スロット判定ロジック
       try {
-        var hasGod = false; 
-        if (Game.hasGod && Game.Objects["Temple"] && Game.Objects["Temple"].minigame) {
-          hasGod = Game.hasGod(2); // 引数を "ruin" から IDの 2 に変更
+        var hasGod = false;
+        var temple = Game.Objects["Temple"];
+        if (temple && temple.minigame) {
+          var god = temple.minigame.godsById[2]; // ID 2のゴザモクデータを取得
+          // slotが 0(ダイヤ), 1(ルビー), 2(ジェイド) のいずれかにセットされていればtrue
+          if (god && (god.slot === 0 || god.slot === 1 || god.slot === 2)) {
+            hasGod = true;
+          }
         }
         
         if (hasGod) {
@@ -90,7 +95,7 @@ var mod = {
           if (Game.buffs) {
             for (var id in Game.buffs) {
               var buffObj = Game.buffs[id];
-              // バフ判定からゴザモクの売却バフ（Devastation）を除外
+              // バフ判定からゴザモクの売却バフ（Devastation）を除外隔離
               if (buffObj && id !== "Devastation" && buffObj.name !== "Devastation") {
                 if (!buffObj.name.includes("storm") && !buffObj.name.includes("Everything") && !buffObj.name.includes("Egg")) { 
                   hasForbiddenBuff = true; 
@@ -152,7 +157,7 @@ var mod = {
         }
       }
       
-      // 自動高効率施設購入（安全性を強化）
+      // 自動高効率施設購入
       if (document.getElementById("au-5") && document.getElementById("au-5").checked && Game.ObjectsById) {
         var bO = null, bS = -1;
         for (var i = 0; i < Game.ObjectsById.length; i++) {
@@ -183,9 +188,10 @@ var mod = {
       }
     }, 500);
     
-    Game.Notify("自動化MOD", "すべての機能が正常にロードされました！ (ver 6.0)", "", 1);
+    Game.Notify("自動化MOD", "すべての機能が正常にロードされました！ (ver 8.0)", "", 1);
   },
   save: function() {},
   load: function() {}
 };
 Game.RegisterMod(mod.id, mod);
+
