@@ -6,20 +6,14 @@
       var modUrl = 'https://github.io';
       
       try {
-        if (typeof Game.modsV2 !== "undefined") {
-          Game.modsV2['Automatic_Cookie'] = modUrl;
-        }
         if (typeof localStorage !== "undefined") {
           var storeData = localStorage.getItem('CookieClickerGameMods');
-          if (storeData) {
-            var sObj = JSON.parse(storeData);
-            sObj['Automatic_Cookie'] = modUrl;
-            localStorage.setItem('CookieClickerGameMods', JSON.stringify(sObj));
-          } else {
-            var nSave = {};
-            nSave['Automatic_Cookie'] = modUrl;
-            localStorage.setItem('CookieClickerGameMods', JSON.stringify(nSave));
-          }
+          var sObj = storeData ? JSON.parse(storeData) : {};
+          sObj['Automatic_Cookie'] = modUrl;
+          localStorage.setItem('CookieClickerGameMods', JSON.stringify(sObj));
+        }
+        if (typeof Game.modsV2 !== "undefined") {
+          Game.modsV2['Automatic_Cookie'] = modUrl;
         }
       } catch(e) {}
       
@@ -230,7 +224,7 @@
             }
           }, 500);
           
-          Game.Notify("Automation MOD", "ver 31.0", "", 1);
+          Game.Notify("Automation MOD", "ver 32.0", "", 1);
         },
         save: function() { return ""; },
         load: function(str) {}
