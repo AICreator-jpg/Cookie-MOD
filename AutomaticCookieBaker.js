@@ -197,4 +197,9 @@ var mod = {
   save: function() {},
   load: function() {}
 };
-Game.RegisterMod(mod.id, mod);
+
+if (typeof Game !== "undefined" && Game.RegisterMod) {
+  Game.RegisterMod(mod.id, mod);
+} else {
+  setTimeout(function() { if (typeof Game !== "undefined" && Game.RegisterMod) Game.RegisterMod(mod.id, mod); }, 2000);
+}
