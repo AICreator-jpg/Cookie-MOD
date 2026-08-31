@@ -3,21 +3,22 @@
     if (typeof Game !== "undefined" && Game.ready) {
       clearInterval(checkReady);
       
-      var myModUrl = 'https://github.io';
+      var modUrl = 'https://github.io';
       
       try {
+        if (typeof Game.modsV2 !== "undefined") {
+          Game.modsV2['Automatic_Cookie'] = modUrl;
+        }
         if (typeof localStorage !== "undefined") {
-          var modSaveData = localStorage.getItem('CookieClickerGameMods');
-          if (modSaveData) {
-            var saveObj = JSON.parse(modSaveData);
-            if (!saveObj['custom_automation_mod']) {
-              saveObj['custom_automation_mod'] = myModUrl;
-              localStorage.setItem('CookieClickerGameMods', JSON.stringify(saveObj));
-            }
+          var storeData = localStorage.getItem('CookieClickerGameMods');
+          if (storeData) {
+            var sObj = JSON.parse(storeData);
+            sObj['Automatic_Cookie'] = modUrl;
+            localStorage.setItem('CookieClickerGameMods', JSON.stringify(sObj));
           } else {
-            var newSave = {};
-            newSave['custom_automation_mod'] = myModUrl;
-            localStorage.setItem('CookieClickerGameMods', JSON.stringify(newSave));
+            var nSave = {};
+            nSave['Automatic_Cookie'] = modUrl;
+            localStorage.setItem('CookieClickerGameMods', JSON.stringify(nSave));
           }
         }
       } catch(e) {}
@@ -103,8 +104,8 @@
                       
                       if (isOrb) {
                         var highest = null;
-                        for (var j in Game.Objects) {
-                          if (Game.Objects[j].amount > 0) highest = Game.Objects[j];
+                        for (var iObj in Game.Objects) {
+                          if (Game.Objects[iObj].amount > 0) highest = Game.Objects[iObj];
                         }
                         
                         if (highest && this.name === highest.name) {
@@ -227,13 +228,13 @@
             }
           }, 500);
           
-          Game.Notify("Automation MOD", "ver 29.0", "", 1);
+          Game.Notify("Automation MOD", "ver 30.0", "", 1);
         },
         save: function() { return ""; },
         load: function(str) {}
       };
       
-      Game.registerMod('custom_automation_mod', modObject);
+      Game.registerMod('Automatic_Cookie', modObject);
     }
   }, 1000);
 })();
