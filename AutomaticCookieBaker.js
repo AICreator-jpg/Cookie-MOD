@@ -6,7 +6,27 @@ var mod = {
     var b = document.createElement("div");
     b.id = "mobile-auto-menu";
     b.style.cssText = "position:fixed;left:5px;top:32%;z-index:999999;background:#222;color:#fff;padding:8px;border:2px solid #ffd700;border-radius:8px;font-size:11px;box-shadow:0 0 10px #000;line-height:1.4;width:150px;";
-    b.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:3px;"><b>多機能自動化MOD</b><button id="au-t" style="background:#444;color:#fff;border:1px solid #ffd700;font-size:9px;padding:1px 3px;">縮小</button></div><div id="au-b"><label><input type="checkbox" id="au-1"> 連打</label><br><label><input type="checkbox" id="au-2"> 金クッキー</label><br><label><input type="checkbox" id="au-3"> トナカイ</label><br><label><input type="checkbox" id="au-4"> フォーチュン</label><br><label><input type="checkbox" id="au-5"> 施設（効率）</label><br><label><input type="checkbox" id="au-6"> 改良</label><br><label><input type="checkbox" id="au-ep"> 自動誓約</label><br><div style="display:flex;gap:4px;margin-top:5px;"><button id="au-g" style="flex:1;background:#4a148c;color:#fff;border:1px solid #9c27b0;font-size:9px;padding:3px 0;border-radius:4px;font-weight:bold;">M1</button><button id="au-g10" style="flex:1;background:#4a148c;color:#fff;border:1px solid #9c27b0;font-size:9px;padding:3px 0;border-radius:4px;font-weight:bold;">M10</button><button id="au-g100" style="flex:1;background:#4a148c;color:#fff;border:1px solid #9c27b0;font-size:9px;padding:3px 0;border-radius:4px;font-weight:bold;">M100</button></div><button id="au-bk" style="width:100%;background:#c62828;color:#fff;border:1px solid #f44336;font-size:10px;padding:4px 0;border-radius:4px;font-weight:bold;margin-top:4px;">BK（バフ消し）</button></div>';
+    
+    b.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:3px;">' +
+      '<b>多機能自動化MOD</b>' +
+      '<button id="au-t" style="background:#444;color:#fff;border:1px solid #ffd700;font-size:9px;padding:1px 3px;">縮小</button>' +
+      '</div>' +
+      '<div id="au-b">' +
+      '<label><input type="checkbox" id="au-1"> 連打</label><br>' +
+      '<label><input type="checkbox" id="au-2"> 金クッキー</label><br>' +
+      '<label><input type="checkbox" id="au-3"> トナカイ</label><br>' +
+      '<label><input type="checkbox" id="au-4"> フォーチュン</label><br>' +
+      '<label><input type="checkbox" id="au-5"> 施設（効率）</label><br>' +
+      '<label><input type="checkbox" id="au-6"> 改良</label><br>' +
+      '<label><input type="checkbox" id="au-ep"> 自動誓約</label><br>' +
+      '<div style="display:flex;gap:4px;margin-top:5px;">' +
+      '<button id="au-g" style="flex:1;background:#4a148c;color:#fff;border:1px solid #9c27b0;font-size:9px;padding:3px 0;border-radius:4px;font-weight:bold;">M1</button>' +
+      '<button id="au-g10" style="flex:1;background:#4a148c;color:#fff;border:1px solid #9c27b0;font-size:9px;padding:3px 0;border-radius:4px;font-weight:bold;">M10</button>' +
+      '<button id="au-g100" style="flex:1;background:#4a148c;color:#fff;border:1px solid #9c27b0;font-size:9px;padding:3px 0;border-radius:4px;font-weight:bold;">M100</button>' +
+      '</div>' +
+      '<button id="au-bk" style="width:100%;background:#c62828;color:#fff;border:1px solid #f44336;font-size:10px;padding:4px 0;border-radius:4px;font-weight:bold;margin-top:4px;">BK（バフ消し）</button>' +
+      '</div>';
+      
     document.body.appendChild(b);
     
     document.getElementById("au-t").onclick = function() {
@@ -72,7 +92,7 @@ var mod = {
                         var bObj = Game.buffs[bId];
                         if (bObj) {
                           var isGozamok = (bId === "Devastation" || bObj.name === "Devastation" || (bObj.type && bObj.type.name === "Devastation"));
-                          var isRedDebuff = (bObj.type && bObj.type.deb && (bObj.type.name === "Clot" || bObj.type.name === "Elder frenzy" || bObj.name === "Clot" || bObj.name === "Elder frenzy"));
+                          var isRedDebuff = (bObj.type && bObj.type.deb && (bObj.type.name === "Clot" || bObj.name === "Clot"));
                           var isMagic = (bObj.name.includes("storm") || bObj.name.includes("Everything") || bObj.name.includes("Egg"));
                           var isGiftLimit = (bObj.name === "Gift limit" || bId === "Gift limit");
                           
@@ -172,7 +192,7 @@ var mod = {
       }
     }, 500);
     
-    Game.Notify("Automation MOD", "Loaded", "", 1);
+    Game.Notify("Automation MOD", "ver 10.0", "", 1);
   },
   save: function() {},
   load: function() {}
