@@ -129,6 +129,18 @@ if (typeof window.CustomAutomationMod === "undefined") {
           if (Game.mouseDown !== undefined) Game.mouseDown = 0;
         }
         
+        if (document.getElementById("au-5") && document.getElementById("au-5").checked && Game.ObjectsById) {
+          var bO = null, bS = -1;
+          for (var i = 0; i < Game.ObjectsById.length; i++) {
+            var o = Game.ObjectsById[i];
+            if (!o) continue;
+            var p = o.getPrice();
+            var c = o.storedCps ? o.storedCps : (typeof o.cps === 'function' ? o.cps(o) : (o.cps || 0));
+            if (p > 0 && c >= 0 && (c / p) > bS) { bS = c / p; bO = o; }
+          }
+          if (bO && Game.cookies >= bO.getPrice()) bO.buy(1);
+        }
+        
         if (Game.researchT > 0) Game.researchT = 1;
         
         if (Game.lumpRefill > 0) {
@@ -164,18 +176,6 @@ if (typeof window.CustomAutomationMod === "undefined") {
           }
         }
         
-        if (document.getElementById("au-5") && document.getElementById("au-5").checked && Game.ObjectsById) {
-          var bO = null, bS = -1;
-          for (var i = 0; i < Game.ObjectsById.length; i++) {
-            var o = Game.ObjectsById[i];
-            if (!o) continue;
-            var p = o.getPrice();
-            var c = o.storedCps ? o.storedCps : (typeof o.cps === 'function' ? o.cps(o) : (o.cps || 0));
-            if (p > 0 && c >= 0 && (c / p) > bS) { bS = c / p; bO = o; }
-          }
-          if (bO && Game.cookies >= bO.getPrice()) bO.buy(1);
-        }
-        
         if (document.getElementById("au-6") && document.getElementById("au-6").checked && Game.UpgradesInStore) {
           for (var j = 0; j < Game.UpgradesInStore.length; j++) {
             var u = Game.UpgradesInStore[j];
@@ -192,7 +192,7 @@ if (typeof window.CustomAutomationMod === "undefined") {
         }
       }, 500);
       
-      Game.Notify("Automation MOD", "ver 20.0", "", 1);
+      Game.Notify("Automation MOD", "ver 21.0", "", 1);
     }
   };
 
@@ -207,3 +207,4 @@ if (typeof window.CustomAutomationMod === "undefined") {
     }, 1000);
   }
 }
+
