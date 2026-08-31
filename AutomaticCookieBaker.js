@@ -24,6 +24,8 @@
       } catch(e) {}
       
       var modObject = {
+        id: 'Automatic_Cookie',
+        name: 'Automatic_Cookie',
         init: function() {
           if (document.getElementById('mobile-auto-menu')) return;
           
@@ -228,7 +230,7 @@
             }
           }, 500);
           
-          Game.Notify("Automation MOD", "ver 30.0", "", 1);
+          Game.Notify("Automation MOD", "ver 31.0", "", 1);
         },
         save: function() { return ""; },
         load: function(str) {}
