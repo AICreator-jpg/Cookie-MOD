@@ -192,7 +192,7 @@ var mod = {
       }
     }, 500);
     
-    Game.Notify("Automation MOD", "ver 16.0", "", 1);
+    Game.Notify("Automation MOD", "ver 18.0", "", 1);
   },
   save: function() {},
   load: function() {}
@@ -200,6 +200,4 @@ var mod = {
 
 if (typeof Game !== "undefined" && Game.RegisterMod) {
   Game.RegisterMod(mod.id, mod);
-} else {
-  setTimeout(function() { if (typeof Game !== "undefined" && Game.RegisterMod) Game.RegisterMod(mod.id, mod); }, 2000);
 }
