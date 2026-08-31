@@ -192,7 +192,7 @@ var mod = {
       }
     }, 500);
     
-    Game.Notify("Automation MOD", "ver 10.0", "", 1);
+    Game.Notify("Automation MOD", "ver 11.0", "", 1);
   },
   save: function() {},
   load: function() {}
