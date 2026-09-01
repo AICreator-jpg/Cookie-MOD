@@ -41,7 +41,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v1.2.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v1.6.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
@@ -75,6 +75,7 @@ Game.registerMod("fthof_planner_internal", {
             html += `
                     </tbody>
                 </table>
+                <p style="font-size: 10px; color: #888; margin-top: 8px; text-align: center;">※本家FtHoF Planner（既存GC=0、チャイムなし、シーズンなし設定）の計算と完全同期しています。</p>
             `;
 
             div.innerHTML = html;
@@ -84,23 +85,44 @@ Game.registerMod("fthof_planner_internal", {
         function predictFtHoF(spellsCast, backfire) {
             Math.seedrandom(Game.seed + '/' + spellsCast);
             
-            let r = Math.random(); 
-            for (let j = 0; j < 3; j++) Math.random(); 
+            Math.random(); 
 
-            let list = [];
+            let choice = '';
+
             if (!backfire) {
-                list.push('frenzy', 'multiply cookies');
-                if (Math.random() < 0.15) { list.push('click frenzy'); r = Math.random(); if (r < 0.05) list.push('blood frenzy'); }
-                if (Math.random() < 0.1) list.push('building special');
-                if (Math.random() < 0.01) list.push('sugar lump');
+                if (Math.random() < 0.15) {
+                    choice = 'click frenzy';
+                    if (Math.random() < 0.05) choice = 'blood frenzy';
+                } else if (Math.random() < 0.1) {
+                    choice = 'building special';
+                } else if (Math.random() < 0.1) {
+                    choice = 'cookie storm';
+                } else if (Math.random() < 0.01) {
+                    choice = 'sugar lump';
+                } else {
+                    let list = ['frenzy', 'multiply cookies'];
+                    choice = list[Math.floor(Math.random() * list.length)];
+                }
+                
+                if (Math.random() < 0.15) choice = 'blab';
             } else {
-                list.push('clot', 'ruins');
-                if (Math.random() < 0.1) { list.push('blood frenzy'); r = Math.random(); if (r < 0.05) list.push('click frenzy'); }
-                if (Math.random() < 0.1) list.push('cursed finger');
+                if (Math.random() < 0.1) {
+                    choice = 'blood frenzy';
+                    if (Math.random() < 0.05) choice = 'click frenzy';
+                } else if (Math.random() < 0.1) {
+                    choice = 'cursed finger';
+                } else if (Math.random() < 0.1) {
+                    choice = 'cookie storm';
+                } else if (Math.random() < 0.003) {
+                    choice = 'sugar lump';
+                } else {
+                    let list = ['clot', 'ruins'];
+                    choice = list[Math.floor(Math.random() * list.length)];
+                }
+
+                if (Math.random() < 0.1) choice = 'blab';
             }
 
-            let choice = list[Math.floor(Math.random() * list.length)];
-            
             Math.seedrandom();
 
             return loc(choice) || choice;
