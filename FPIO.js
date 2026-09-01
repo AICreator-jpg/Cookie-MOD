@@ -19,27 +19,18 @@ Game.registerMod("fthof_planner_internal", {
             };
         }
 
-        function createFortuneCookieRng(seedStr) {
-            let key = [];
-            for (let i = 0; i < seedStr.length; i++) {
-                key[i] = seedStr.charCodeAt(i);
+        function createLiveRngSimulator() {
+            let originalRandom = Math.random;
+            let buffer = [];
+            for (let i = 0; i < 100; i++) {
+                buffer.push(originalRandom());
             }
-            let s = [];
-            for (let i = 0; i < 256; i++) s[i] = i;
-            let j = 0;
-            for (let i = 0; i < 256; i++) {
-                j = (j + s[i] + (key[i % key.length] || 0)) % 256;
-                let t = s[i]; s[i] = s[j]; s[j] = t;
-            }
-            let i = 0; let k = 0;
+            let index = 0;
             return function() {
-                let r = 0;
-                for (let m = 0; k = (k + 1) % 256, m < 4; m++) {
-                    i = (i + s[k]) % 256;
-                    let t = s[k]; s[k] = s[i]; s[i] = t;
-                    r = r * 256 + s[(s[k] + s[i]) % 256];
+                if (index >= buffer.length) {
+                    buffer.push(originalRandom());
                 }
-                return r / 4294967296;
+                return buffer[index++];
             };
         }
 
@@ -65,7 +56,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v17.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v20.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -86,12 +77,12 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let normalSuccess = predictFtHoF(futureCast, 0, 0);
-                let seasonSuccess = predictFtHoF(futureCast, 0, 1);
-                let normalFail = predictFtHoF(futureCast, 1, 0);
-                let seasonFail = predictFtHoF(futureCast, 1, 1);
+                let normalSuccess = predictFtHoF(0, 0, createLiveRngSimulator());
+                let seasonSuccess = predictFtHoF(0, 1, createLiveRngSimulator());
+                let normalFail = predictFtHoF(1, 0, createLiveRngSimulator());
+                let seasonFail = predictFtHoF(1, 1, createLiveRngSimulator());
                 
-                let failCondition = getFailCondition(futureCast);
+                let failCondition = getFailCondition(createLiveRngSimulator());
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
@@ -115,16 +106,16 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
 
-        function predictFtHoF(spellsCast, backfire, isSeasonMod) {
-            let localRng = createFortuneCookieRng(Game.seed + '/' + spellsCast);
-            
-            localRng(); 
+        function predictFtHoF(backfire, isSeasonMod, liveRng) {
+            liveRng(); 
+
+            if (isSeasonMod) liveRng();
 
             let choice = '';
             let auraLvl = Game.hasAura('Supreme Intellect');
             
             if (!backfire) {
-                let r = localRng();
+                let r = liveRng();
                 let clickFrenzyChance = 0.15;
                 let bldgSpecChance = 0.1;
                 let stormChance = 0.1;
@@ -139,7 +130,7 @@ Game.registerMod("fthof_planner_internal", {
                 
                 if (r < clickFrenzyChance) {
                     choice = 'click frenzy';
-                    if (localRng() < 0.05) choice = 'blood frenzy';
+                    if (liveRng() < 0.05) choice = 'blood frenzy';
                 } else if (r < clickFrenzyChance + bldgSpecChance) {
                     choice = 'building special';
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
@@ -149,7 +140,7 @@ Game.registerMod("fthof_planner_internal", {
                 } else {
                     let list = ['frenzy', 'multiply cookies'];
                     if (isSeasonMod) list.push('season_placeholder_cookie');
-                    choice = list[Math.floor(localRng() * list.length)];
+                    choice = list[Math.floor(liveRng() * list.length)];
                     if (choice === 'season_placeholder_cookie') {
                         choice = 'frenzy'; 
                     }
@@ -157,9 +148,9 @@ Game.registerMod("fthof_planner_internal", {
                 
                 let blabChance = 0.15;
                 if (auraLvl) blabChance *= 1.1;
-                if (localRng() < blabChance) choice = 'blab';
+                if (liveRng() < blabChance) choice = 'blab';
             } else {
-                let r = localRng();
+                let r = liveRng();
                 let bloodFrenzyChance = 0.1;
                 let cursedFingerChance = 0.1;
                 let stormChance = 0.1;
@@ -174,7 +165,7 @@ Game.registerMod("fthof_planner_internal", {
                 
                 if (r < bloodFrenzyChance) {
                     choice = 'blood frenzy';
-                    if (localRng() < 0.05) choice = 'click frenzy';
+                    if (liveRng() < 0.05) choice = 'click frenzy';
                 } else if (r < bloodFrenzyChance + cursedFingerChance) {
                     choice = 'cursed finger';
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
@@ -184,7 +175,7 @@ Game.registerMod("fthof_planner_internal", {
                 } else {
                     let list = ['clot', 'ruins'];
                     if (isSeasonMod) list.push('season_placeholder_cookie');
-                    choice = list[Math.floor(localRng() * list.length)];
+                    choice = list[Math.floor(liveRng() * list.length)];
                     if (choice === 'season_placeholder_cookie') {
                         choice = 'clot'; 
                     }
@@ -192,15 +183,14 @@ Game.registerMod("fthof_planner_internal", {
                 
                 let blabChance = 0.1;
                 if (auraLvl) blabChance *= 1.1;
-                if (localRng() < blabChance) choice = 'blab';
+                if (liveRng() < blabChance) choice = 'blab';
             }
 
             return loc(choice) || choice;
         }
 
-        function getFailCondition(spellsCast) {
-            let localRng = createFortuneCookieRng(Game.seed + '/' + spellsCast);
-            let failRoll = localRng();
+        function getFailCondition(liveRng) {
+            let failRoll = liveRng();
 
             let baseFailChance = 0.15;
             if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
