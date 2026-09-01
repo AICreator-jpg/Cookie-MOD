@@ -41,7 +41,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v14.1.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v14.2.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -59,18 +59,15 @@ Game.registerMod("fthof_planner_internal", {
                     <tbody>
             `;
 
-            // 計算を開始する前の、ゲーム本来のピュアなMath.randomを一度だけ退避
-            let absoluteOriginalRandom = Math.random;
-
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let normalSuccess = predictFtHoF(futureCast, 0, 0, absoluteOriginalRandom);
-                let seasonSuccess = predictFtHoF(futureCast, 0, 1, absoluteOriginalRandom);
-                let normalFail = predictFtHoF(futureCast, 1, 0, absoluteOriginalRandom);
-                let seasonFail = predictFtHoF(futureCast, 1, 1, absoluteOriginalRandom);
+                let normalSuccess = predictFtHoF(futureCast, 0, 0);
+                let seasonSuccess = predictFtHoF(futureCast, 0, 1);
+                let normalFail = predictFtHoF(futureCast, 1, 0);
+                let seasonFail = predictFtHoF(futureCast, 1, 1);
                 
-                let failCondition = getFailCondition(futureCast, absoluteOriginalRandom);
+                let failCondition = getFailCondition(futureCast);
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
@@ -85,9 +82,6 @@ Game.registerMod("fthof_planner_internal", {
                 `;
             }
 
-            // すべてのセルの計算が完全に終わったら、ゲーム本来のMath.randomに完璧に戻す
-            Math.random = absoluteOriginalRandom;
-
             html += `
                     </tbody>
                 </table>
@@ -97,14 +91,12 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
 
-        function predictFtHoF(spellsCast, backfire, isSeasonMod, originalRandom) {
-            // シードを固定（これによってMath.randomがその手専用の関数にすり替わる）
+        function predictFtHoF(spellsCast, backfire, isSeasonMod) {
+            let nextOriginalRandom = Math.random;
+            
             Math.seedrandom(Game.seed + '/' + spellsCast);
             
-            // バックファイア確率判定用の消費
             Math.random(); 
-
-            // シ즌変形があればさらに消費を進める
             if (isSeasonMod) Math.random();
 
             let choice = '';
@@ -174,12 +166,18 @@ Game.registerMod("fthof_planner_internal", {
                 if (Math.random() < blabChance) choice = 'blab';
             }
 
+            Math.random = nextOriginalRandom;
+
             return loc(choice) || choice;
         }
 
-        function getFailCondition(spellsCast, originalRandom) {
+        function getFailCondition(spellsCast) {
+            let nextOriginalRandom = Math.random;
+
             Math.seedrandom(Game.seed + '/' + spellsCast);
             let failRoll = Math.random();
+
+            Math.random = nextOriginalRandom;
 
             let baseFailChance = 0.15;
             if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
@@ -197,3 +195,4 @@ Game.registerMod("fthof_planner_internal", {
     save: function() {},
     load: function() {}
 });
+
