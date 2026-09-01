@@ -39,21 +39,21 @@ Game.registerMod("fthof_planner_internal", {
             div.className = 'listing';
             div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);';
 
-            let activeGCs = Game.shimmerTypes['golden'].n;
-
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v4.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v5.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
-                    <p style="font-size: 10px; color: #aaa; margin: 0;">同期：既存GC[${activeGCs}枚] （※画面上のGC枚数に応じて結果は自動で変動します）</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
                     <thead>
-                        <tr style="border-bottom: 1px solid #555; color: #add8e6;">
-                            <th style="padding: 4px; width: 10%;">先の手数</th>
-                            <th style="padding: 4px; width: 10%;">総詠唱</th>
-                            <th style="padding: 4px; width: 40%; color: #ffd700;">シーズン無 / クリスマス</th>
-                            <th style="padding: 4px; width: 40%; color: #ffb6c1;">特定4シーズン (※)</th>
+                        <tr style="border-bottom: 1px solid #555; color: #add8e6; text-align: center;">
+                            <th style="padding: 4px; text-align: left;">先の手数</th>
+                            <th style="padding: 4px;">総詠唱</th>
+                            <th style="padding: 4px; color: #6f6;">通常 成功</th>
+                            <th style="padding: 4px; color: #ffd700;">4季 成功</th>
+                            <th style="padding: 4px; color: #f55;">通常 失敗</th>
+                            <th style="padding: 4px; color: #ffb6c1;">4季 失敗</th>
+                            <th style="padding: 4px; color: #ff7f50;">失敗条件 (GC数)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -62,15 +62,22 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let normalCookie = predictFtHoF(futureCast, 0, activeGCs);
-                let seasonCookie = predictFtHoF(futureCast, 1, activeGCs);
+                let normalSuccess = predictFtHoF(futureCast, 0, 0);
+                let seasonSuccess = predictFtHoF(futureCast, 0, 1);
+                let normalFail = predictFtHoF(futureCast, 1, 0);
+                let seasonFail = predictFtHoF(futureCast, 1, 1);
+                
+                let failCondition = getFailCondition(futureCast);
 
                 html += `
-                    <tr style="border-bottom: 1px solid #333; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
-                        <td style="padding: 6px; color: #aaa;">+${i} 手目</td>
+                    <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
+                        <td style="padding: 6px; text-align: left; color: #aaa;">+${i} 手目</td>
                         <td style="padding: 6px; font-weight: bold;">${futureCast}</td>
-                        <td style="padding: 6px; color: #6f6;">${normalCookie}</td>
-                        <td style="padding: 6px; color: #ffb6c1;">${seasonCookie}</td>
+                        <td style="padding: 6px; color: #6f6;">${normalSuccess}</td>
+                        <td style="padding: 6px; color: #ffd700;">${seasonSuccess}</td>
+                        <td style="padding: 6px; color: #f55;">${normalFail}</td>
+                        <td style="padding: 6px; color: #ffb6c1;">${seasonFail}</td>
+                        <td style="padding: 6px; color: #ff7f50; font-weight: bold;">${failCondition}</td>
                     </tr>
                 `;
             }
@@ -78,59 +85,108 @@ Game.registerMod("fthof_planner_internal", {
             html += `
                     </tbody>
                 </table>
-                <p style="font-size: 10px; color: #888; margin-top: 8px; text-align: center;">※特定4シーズン：バレンタインデー、イースター、ハロウィン、ビジネスデイ</p>
             `;
 
             div.innerHTML = html;
             menu.appendChild(div);
         }
 
-        function predictFtHoF(spellsCast, isSeasonMod, gcs) {
+        function predictFtHoF(spellsCast, backfire, isSeasonMod) {
             Math.seedrandom(Game.seed + '/' + spellsCast);
             
             Math.random(); 
-
-            for (let k = 0; k < gcs; k++) Math.random();
-
             if (isSeasonMod) Math.random();
 
             let choice = '';
             let auraLvl = Game.hasAura('Supreme Intellect');
             
-            let r = Math.random();
-            let clickFrenzyChance = 0.15;
-            let bldgSpecChance = 0.1;
-            let stormChance = 0.1;
-            let lumpChance = 0.01;
-            
-            if (auraLvl) {
-                clickFrenzyChance *= 1.1;
-                bldgSpecChance *= 1.1;
-                stormChance *= 1.1;
-                lumpChance *= 1.1;
-            }
-            
-            if (r < clickFrenzyChance) {
-                choice = 'click frenzy';
-                if (Math.random() < 0.05) choice = 'blood frenzy';
-            } else if (r < clickFrenzyChance + bldgSpecChance) {
-                choice = 'building special';
-            } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
-                choice = 'cookie storm';
-            } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
-                choice = 'sugar lump';
+            if (!backfire) {
+                let r = Math.random();
+                let clickFrenzyChance = 0.15;
+                let bldgSpecChance = 0.1;
+                let stormChance = 0.1;
+                let lumpChance = 0.01;
+                
+                if (auraLvl) {
+                    clickFrenzyChance *= 1.1;
+                    bldgSpecChance *= 1.1;
+                    stormChance *= 1.1;
+                    lumpChance *= 1.1;
+                }
+                
+                if (r < clickFrenzyChance) {
+                    choice = 'click frenzy';
+                    if (Math.random() < 0.05) choice = 'blood frenzy';
+                } else if (r < clickFrenzyChance + bldgSpecChance) {
+                    choice = 'building special';
+                } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
+                    choice = 'cookie storm';
+                } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
+                    choice = 'sugar lump';
+                } else {
+                    if (Math.random() < 0.5) choice = 'frenzy';
+                    else choice = 'multiply cookies';
+                }
+                
+                let blabChance = 0.15;
+                if (auraLvl) blabChance *= 1.1;
+                if (Math.random() < blabChance) choice = 'blab';
             } else {
-                if (Math.random() < 0.5) choice = 'frenzy';
-                else choice = 'multiply cookies';
+                let r = Math.random();
+                let bloodFrenzyChance = 0.1;
+                let cursedFingerChance = 0.1;
+                let stormChance = 0.1;
+                let lumpChance = 0.003;
+                
+                if (auraLvl) {
+                    bloodFrenzyChance *= 1.1;
+                    cursedFingerChance *= 1.1;
+                    stormChance *= 1.1;
+                    lumpChance *= 1.1;
+                }
+                
+                if (r < bloodFrenzyChance) {
+                    choice = 'blood frenzy';
+                    if (Math.random() < 0.05) choice = 'click frenzy';
+                } else if (r < bloodFrenzyChance + cursedFingerChance) {
+                    choice = 'cursed finger';
+                } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
+                    choice = 'cookie storm';
+                } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance + lumpChance) {
+                    choice = 'sugar lump';
+                } else {
+                    if (Math.random() < 0.5) choice = 'clot';
+                    else choice = 'ruins';
+                }
+                
+                let blabChance = 0.1;
+                if (auraLvl) blabChance *= 1.1;
+                if (Math.random() < blabChance) choice = 'blab';
             }
-            
-            let blabChance = 0.15;
-            if (auraLvl) blabChance *= 1.1;
-            if (Math.random() < blabChance) choice = 'blab';
 
             Math.seedrandom();
 
             return loc(choice) || choice;
+        }
+
+        function getFailCondition(spellsCast) {
+            Math.seedrandom(Game.seed + '/' + spellsCast);
+            let failRoll = Math.random();
+            Math.seedrandom();
+
+            let tower = Game.Objects['Wizard tower'];
+            if (!tower || !tower.minigame) return "0枚以上";
+            
+            let M = tower.minigame;
+            let baseChance = 0.15;
+            if (Game.hasBackfireUpgrade) baseChance = M.getFailChance(Game.hasBackfireUpgrade); 
+            
+            if (failRoll < baseChance) return "0枚以上";
+            if (failRoll < baseChance + 0.15) return "1枚以上";
+            if (failRoll < baseChance + 0.30) return "2枚以上";
+            if (failRoll < baseChance + 0.45) return "3枚以上";
+            
+            return "不発/安全";
         }
     },
     save: function() {},
