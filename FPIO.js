@@ -41,7 +41,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v11.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v12.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -59,34 +59,15 @@ Game.registerMod("fthof_planner_internal", {
                     <tbody>
             `;
 
-            let auraLvl = Game.hasAura('Supreme Intellect');
-            let realityBend = Game.hasAura('Reality Bending');
-
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                Math.seedrandom(Game.seed + '/' + futureCast);
-                let rawSeed1 = Math.random();
-                let rawSeed2 = Math.random();
-                Math.seedrandom();
-
-                let normalSuccess = pickCookie(rawSeed1, 0, auraLvl);
-                let seasonSuccess = pickCookie(rawSeed2, 0, auraLvl);
-                let normalFail = pickCookie(rawSeed1, 1, auraLvl);
-                let seasonFail = pickCookie(rawSeed2, 1, auraLvl);
+                let normalSuccess = predictFtHoF(futureCast, 0, 0);
+                let seasonSuccess = predictFtHoF(futureCast, 0, 1);
+                let normalFail = predictFtHoF(futureCast, 1, 0);
+                let seasonFail = predictFtHoF(futureCast, 1, 1);
                 
-                let failCondition = "6+";
-                let baseFailChance = 0.15;
-                if (auraLvl) baseFailChance *= 1.1;
-                if (realityBend) baseFailChance *= 1.01;
-
-                for (let gcs = 0; gcs <= 6; gcs++) {
-                    let actualFailChance = baseFailChance + (gcs * 0.15);
-                    if (rawSeed1 < actualFailChance) {
-                        failCondition = gcs.toString();
-                        break;
-                    }
-                }
+                let failCondition = getFailCondition(futureCast);
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
@@ -110,9 +91,18 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
 
-        function pickCookie(r, isBackfire, auraLvl) {
+        function predictFtHoF(spellsCast, backfire, isSeasonMod) {
+            Math.seedrandom(Game.seed + '/' + spellsCast);
+            
+            Math.random(); 
+
+            if (isSeasonMod) Math.random();
+
             let choice = '';
-            if (!isBackfire) {
+            let auraLvl = Game.hasAura('Supreme Intellect');
+            
+            if (!backfire) {
+                let r = Math.random();
                 let clickFrenzyChance = 0.15;
                 let bldgSpecChance = 0.1;
                 let stormChance = 0.1;
@@ -127,7 +117,7 @@ Game.registerMod("fthof_planner_internal", {
                 
                 if (r < clickFrenzyChance) {
                     choice = 'click frenzy';
-                    if ((r / clickFrenzyChance) < 0.05) choice = 'blood frenzy';
+                    if (Math.random() < 0.05) choice = 'blood frenzy';
                 } else if (r < clickFrenzyChance + bldgSpecChance) {
                     choice = 'building special';
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
@@ -135,14 +125,15 @@ Game.registerMod("fthof_planner_internal", {
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
                     choice = 'sugar lump';
                 } else {
-                    if ((r * 137) % 2 < 1) choice = 'frenzy';
+                    if (Math.random() < 0.5) choice = 'frenzy';
                     else choice = 'multiply cookies';
                 }
                 
                 let blabChance = 0.15;
                 if (auraLvl) blabChance *= 1.1;
-                if (r > 1 - blabChance) choice = 'blab';
+                if (Math.random() < blabChance) choice = 'blab';
             } else {
+                let r = Math.random();
                 let bloodFrenzyChance = 0.1;
                 let cursedFingerChance = 0.1;
                 let stormChance = 0.1;
@@ -157,7 +148,7 @@ Game.registerMod("fthof_planner_internal", {
                 
                 if (r < bloodFrenzyChance) {
                     choice = 'blood frenzy';
-                    if ((r / bloodFrenzyChance) < 0.05) choice = 'click frenzy';
+                    if (Math.random() < 0.05) choice = 'click frenzy';
                 } else if (r < bloodFrenzyChance + cursedFingerChance) {
                     choice = 'cursed finger';
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
@@ -165,15 +156,36 @@ Game.registerMod("fthof_planner_internal", {
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance + lumpChance) {
                     choice = 'sugar lump';
                 } else {
-                    if ((r * 137) % 2 < 1) choice = 'clot';
+                    if (Math.random() < 0.5) choice = 'clot';
                     else choice = 'ruins';
                 }
                 
                 let blabChance = 0.1;
                 if (auraLvl) blabChance *= 1.1;
-                if (r > 1 - blabChance) choice = 'blab';
+                if (Math.random() < blabChance) choice = 'blab';
             }
+
+            Math.seedrandom();
+
             return loc(choice) || choice;
+        }
+
+        function getFailCondition(spellsCast) {
+            Math.seedrandom(Game.seed + '/' + spellsCast);
+            let failRoll = Math.random();
+            Math.seedrandom();
+
+            let baseFailChance = 0.15;
+            if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
+            if (Game.hasAura('Reality Bending')) baseFailChance *= 1.01;
+
+            for (let gcs = 0; gcs <= 6; gcs++) {
+                let actualFailChance = baseFailChance + (gcs * 0.15);
+                if (failRoll < actualFailChance) {
+                    return gcs.toString();
+                }
+            }
+            return "6+";
         }
     },
     save: function() {},
