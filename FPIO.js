@@ -5,18 +5,15 @@ Game.registerMod("fthof_planner_internal", {
                 let menu = document.getElementById('menu');
                 if (!menu) return;
 
-                // 描写を常に最新化
                 let existing = document.getElementById('custom-internal-fthof');
                 if (existing) existing.remove();
 
-                // 魔導書ミニゲームが解放されているかチェック
                 let tower = Game.Objects['Wizard tower'];
                 if (!tower || !tower.minigame) return;
                 
                 let M = tower.minigame;
                 let spellsCount = M.spellsCastTotal;
 
-                // コンテナの作成
                 let div = document.createElement('div');
                 div.id = 'custom-internal-fthof';
                 div.className = 'listing';
@@ -39,7 +36,6 @@ Game.registerMod("fthof_planner_internal", {
                         <tbody>
                 `;
 
-                // 先10手分を計算
                 for (let i = 1; i <= 10; i++) {
                     let futureCast = spellsCount + (i - 1);
                     
@@ -59,7 +55,6 @@ Game.registerMod("fthof_planner_internal", {
                 html += `
                         </tbody>
                     </table>
-                    <p style="font-size: 10px; color: #888; margin-top: 8px; text-align: center;">※チャイムの有無や現在のシーズン、画面上の既存ゴールデンクッキー数によって実際の挙動は変動する場合があります。</p>
                 `;
 
                 div.innerHTML = html;
@@ -67,18 +62,14 @@ Game.registerMod("fthof_planner_internal", {
             }
         });
 
-        // FtHoFの正確なシミュレータ関数
         function predictFtHoF(spellsCast, backfire) {
-            // ゲームのシード値と詠唱回数から予測用の乱数値をリセット
             Math.seedrandom(Game.seed + '/' + spellsCast);
             
-            // 呪文の選択、バックファイア判定、クッキー種別判定のステップを模倣
             let r = Math.random(); 
             for (let j = 0; j < 3; j++) Math.random(); 
 
             let list = [];
             if (!backfire) {
-                // 正しいゲーム内データ名（英語の内部プロパティ）で処理
                 list.push('frenzy', 'multiply cookies');
                 if (Math.random() < 0.15) { list.push('click frenzy'); r = Math.random(); if (r < 0.05) list.push('blood frenzy'); }
                 if (Math.random() < 0.1) list.push('building special');
@@ -91,20 +82,18 @@ Game.registerMod("fthof_planner_internal", {
 
             let choice = list[Math.floor(Math.random() * list.length)];
             
-            // クッキークリッカー本体の公式日本語翻訳テキストに変換
             const officialTranslations = {
-                'frenzy': loc("frenzy"),                       // 狂乱
-                'multiply cookies': loc("multiply cookies"),   // 幸運
-                'click frenzy': loc("click frenzy"),           // 連打狂乱
-                'blood frenzy': loc("blood frenzy"),           // 長老狂乱
-                'building special': loc("building special"),   // 建物特効
-                'sugar lump': loc("sugar lump"),               // 砂糖結晶
-                'clot': loc("clot"),                           // 凝固
-                'ruins': loc("ruins"),                         // 破滅
-                'cursed finger': loc("cursed finger")          // 呪われた指
+                'frenzy': loc("frenzy"),
+                'multiply cookies': loc("multiply cookies"),
+                'click frenzy': loc("click frenzy"),
+                'blood frenzy': loc("blood frenzy"),
+                'building special': loc("building special"),
+                'sugar lump': loc("sugar lump"),
+                'clot': loc("clot"),
+                'ruins': loc("ruins"),
+                'cursed finger': loc("cursed finger")
             };
 
-            // 乱数シードを安全に通常状態に戻す
             Math.seedrandom();
 
             return officialTranslations[choice] || choice;
