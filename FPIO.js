@@ -41,14 +41,14 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v9.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v10.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
                     <thead>
                         <tr style="border-bottom: 1px solid #555; color: #add8e6; text-align: center;">
                             <th style="padding: 4px; text-align: left; width: 10%;">Spell #</th>
-                            <th style="padding: 4px; text-align: left; width: 10%;">総詠唱</th>
+                            <th style="padding: 4px; width: 10%;">総詠唱</th>
                             <th style="padding: 4px; color: #6f6; width: 20%;">通常 成功</th>
                             <th style="padding: 4px; color: #ffd700; width: 20%;">4季 成功</th>
                             <th style="padding: 4px; color: #f55; width: 20%;">通常 失敗</th>
@@ -91,22 +91,11 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
 
-        function getCookieClickerSeedFromGame() {
-            try {
-                let saveCode = Game.WriteSave(1);
-                let decodedText = atob(unescape(saveCode.split('%21END%21')[0]));
-                let seed = decodedText.split('|')[1].split(';')[4];
-                return seed;
-            } catch (e) {
-                return Game.seed;
-            }
-        }
-
         function predictFtHoF(spellsCast, backfire, isSeasonMod) {
-            let activeSeed = getCookieClickerSeedFromGame();
-            Math.seedrandom(activeSeed + '/' + spellsCast);
+            Math.seedrandom(Game.seed + '/' + spellsCast);
             
             Math.random(); 
+
             if (isSeasonMod) Math.random();
 
             let choice = '';
@@ -182,8 +171,7 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function getFailCondition(spellsCast) {
-            let activeSeed = getCookieClickerSeedFromGame();
-            Math.seedrandom(activeSeed + '/' + spellsCast);
+            Math.seedrandom(Game.seed + '/' + spellsCast);
             let failRoll = Math.random();
             Math.seedrandom();
 
@@ -203,4 +191,3 @@ Game.registerMod("fthof_planner_internal", {
     save: function() {},
     load: function() {}
 });
-
