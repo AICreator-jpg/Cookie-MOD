@@ -1,18 +1,22 @@
 Game.registerMod("fthof_planner_internal", {
     init: function() {
-        Game.registerHook('draw', function() {
+        let cCOldUpdateMenu = Game.UpdateMenu;
+        
+        Game.UpdateMenu = function() {
+            cCOldUpdateMenu();
+            
             if (Game.onMenu == 'options') {
                 let menu = document.getElementById('menu');
                 if (!menu) return;
-
-                let existing = document.getElementById('custom-internal-fthof');
-                if (existing) existing.remove();
 
                 let tower = Game.Objects['Wizard tower'];
                 if (!tower || !tower.minigame) return;
                 
                 let M = tower.minigame;
                 let spellsCount = M.spellsCastTotal;
+
+                let existing = document.getElementById('custom-internal-fthof');
+                if (existing) existing.remove();
 
                 let div = document.createElement('div');
                 div.id = 'custom-internal-fthof';
@@ -21,7 +25,7 @@ Game.registerMod("fthof_planner_internal", {
 
                 let html = `
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v1.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
@@ -60,7 +64,7 @@ Game.registerMod("fthof_planner_internal", {
                 div.innerHTML = html;
                 menu.appendChild(div);
             }
-        });
+        };
 
         function predictFtHoF(spellsCast, backfire) {
             Math.seedrandom(Game.seed + '/' + spellsCast);
