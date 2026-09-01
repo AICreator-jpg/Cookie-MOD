@@ -39,15 +39,13 @@ Game.registerMod("fthof_planner_internal", {
             div.className = 'listing';
             div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);';
 
-            let currentSeason = Game.season;
-            let chimeActive = (Game.Has('Golden cookie sound selector') && Game.Upgrades['Golden cookie sound selector'].on == 1);
             let activeGCs = Game.shimmerTypes['golden'].n;
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v3.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v3.1.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
-                    <p style="font-size: 10px; color: #aaa; margin: 0;">同期：季節[${currentSeason || '通常'}] / 音音[${chimeActive ? 'ON' : 'OFF'}] / 既存GC[${activeGCs}枚]</p>
+                    <p style="font-size: 10px; color: #aaa; margin: 0;">同期：既存GC[${activeGCs}枚]</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
                     <thead>
@@ -64,8 +62,8 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let successCookie = predictFtHoF(futureCast, 0, currentSeason, chimeActive, activeGCs);
-                let backfireCookie = predictFtHoF(futureCast, 1, currentSeason, chimeActive, activeGCs);
+                let successCookie = predictFtHoF(futureCast, 0, activeGCs);
+                let backfireCookie = predictFtHoF(futureCast, 1, activeGCs);
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
@@ -86,14 +84,12 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
 
-        function predictFtHoF(spellsCast, backfire, season, chime, gcs) {
+        function predictFtHoF(spellsCast, backfire, gcs) {
             Math.seedrandom(Game.seed + '/' + spellsCast);
             
-            for (let k = 0; k < gcs; k++) Math.random();
-            if (season == 'valentines' || season == 'easter') Math.random();
-            if (chime) Math.random();
-
             Math.random(); 
+
+            for (let k = 0; k < gcs; k++) Math.random();
 
             let choice = '';
             let auraLvl = Game.hasAura('Supreme Intellect');
