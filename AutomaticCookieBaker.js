@@ -210,7 +210,7 @@
             }
           }, 500);
           
-          Game.Notify("Automation MOD", "ver 33.0", "", 1);
+          Game.Notify("Automation MOD", "ver 1.0", "", 1);
         },
         save: function() {
           return "https://github.io";
