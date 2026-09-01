@@ -41,16 +41,19 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v8.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v9.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
                     <thead>
                         <tr style="border-bottom: 1px solid #555; color: #add8e6; text-align: center;">
-                            <th style="padding: 4px; text-align: left; width: 15%;">Spell #</th>
-                            <th style="padding: 4px; text-align: left; width: 25%;">Random Seed</th>
-                            <th style="padding: 4px; color: #ffd700; width: 30%;">Default predictions</th>
-                            <th style="padding: 4px; color: #ffb6c1; width: 30%;">Seasonal predictions</th>
+                            <th style="padding: 4px; text-align: left; width: 10%;">Spell #</th>
+                            <th style="padding: 4px; text-align: left; width: 10%;">総詠唱</th>
+                            <th style="padding: 4px; color: #6f6; width: 20%;">通常 成功</th>
+                            <th style="padding: 4px; color: #ffd700; width: 20%;">4季 成功</th>
+                            <th style="padding: 4px; color: #f55; width: 20%;">通常 失敗</th>
+                            <th style="padding: 4px; color: #ffb6c1; width: 20%;">4季 失敗</th>
+                            <th style="padding: 4px; color: #ff7f50; width: 10%;">条件 (GC数)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -59,20 +62,22 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                Math.seedrandom(Game.seed + '/' + futureCast);
-                let seedValue = Math.random();
-                Math.seedrandom();
-
-                let failCondition = getFailOnscreenCount(seedValue);
-                let normalCookie = predictFtHoFBySeed(seedValue, 0);
-                let seasonCookie = predictFtHoFBySeed(seedValue, 1);
+                let normalSuccess = predictFtHoF(futureCast, 0, 0);
+                let seasonSuccess = predictFtHoF(futureCast, 0, 1);
+                let normalFail = predictFtHoF(futureCast, 1, 0);
+                let seasonFail = predictFtHoF(futureCast, 1, 1);
+                
+                let failCondition = getFailCondition(futureCast);
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
-                        <td style="padding: 6px; text-align: left; color: #aaa;">${i} (${futureCast})</td>
-                        <td style="padding: 6px; text-align: left; font-family: monospace;">${seedValue.toFixed(4)} <span style="color: #ff7f50; font-size: 10px;">(${failCondition})</span></td>
-                        <td style="padding: 6px;">${normalCookie}</td>
-                        <td style="padding: 6px;">${seasonCookie}</td>
+                        <td style="padding: 6px; text-align: left; color: #aaa;">+${i}</td>
+                        <td style="padding: 6px; font-weight: bold;">${futureCast}</td>
+                        <td style="padding: 6px; color: #6f6;">${normalSuccess}</td>
+                        <td style="padding: 6px; color: #ffd700;">${seasonSuccess}</td>
+                        <td style="padding: 6px; color: #f55;">${normalFail}</td>
+                        <td style="padding: 6px; color: #ffb6c1;">${seasonFail}</td>
+                        <td style="padding: 6px; color: #ff7f50; font-weight: bold;">${failCondition}</td>
                     </tr>
                 `;
             }
@@ -86,38 +91,29 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
 
-        function getFailOnscreenCount(seedValue) {
-            let baseFailChance = 0.15;
-            if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
-            if (Game.hasAura('Reality Bending')) baseFailChance *= 1.01;
-
-            for (let gcs = 0; gcs <= 6; gcs++) {
-                let actualFailChance = baseFailChance + (gcs * 0.15);
-                if (seedValue < actualFailChance) {
-                    return gcs + " onscreen";
-                }
+        function getCookieClickerSeedFromGame() {
+            try {
+                let saveCode = Game.WriteSave(1);
+                let decodedText = atob(unescape(saveCode.split('%21END%21')[0]));
+                let seed = decodedText.split('|')[1].split(';')[4];
+                return seed;
+            } catch (e) {
+                return Game.seed;
             }
-            return "6+ onscreen";
         }
 
-        function predictFtHoFBySeed(seedValue, isSeasonMod) {
-            let baseFailChance = 0.15;
-            if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
-            if (Game.hasAura('Reality Bending')) baseFailChance *= 1.01;
-
-            let currentGCs = Game.shimmerTypes['golden'].n;
-            let currentFailChance = baseFailChance + (currentGCs * 0.15);
-            let isBackfire = (seedValue < currentFailChance);
+        function predictFtHoF(spellsCast, backfire, isSeasonMod) {
+            let activeSeed = getCookieClickerSeedFromGame();
+            Math.seedrandom(activeSeed + '/' + spellsCast);
+            
+            Math.random(); 
+            if (isSeasonMod) Math.random();
 
             let choice = '';
             let auraLvl = Game.hasAura('Supreme Intellect');
-
-            let r = seedValue; 
-            if (isSeasonMod) {
-                r = (seedValue * 7 + 13) % 1; 
-            }
-
-            if (!isBackfire) {
+            
+            if (!backfire) {
+                let r = Math.random();
                 let clickFrenzyChance = 0.15;
                 let bldgSpecChance = 0.1;
                 let stormChance = 0.1;
@@ -132,6 +128,7 @@ Game.registerMod("fthof_planner_internal", {
                 
                 if (r < clickFrenzyChance) {
                     choice = 'click frenzy';
+                    if (Math.random() < 0.05) choice = 'blood frenzy';
                 } else if (r < clickFrenzyChance + bldgSpecChance) {
                     choice = 'building special';
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
@@ -139,10 +136,15 @@ Game.registerMod("fthof_planner_internal", {
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
                     choice = 'sugar lump';
                 } else {
-                    if ((r * 100) % 2 < 1) choice = 'frenzy';
+                    if (Math.random() < 0.5) choice = 'frenzy';
                     else choice = 'multiply cookies';
                 }
+                
+                let blabChance = 0.15;
+                if (auraLvl) blabChance *= 1.1;
+                if (Math.random() < blabChance) choice = 'blab';
             } else {
+                let r = Math.random();
                 let bloodFrenzyChance = 0.1;
                 let cursedFingerChance = 0.1;
                 let stormChance = 0.1;
@@ -157,6 +159,7 @@ Game.registerMod("fthof_planner_internal", {
                 
                 if (r < bloodFrenzyChance) {
                     choice = 'blood frenzy';
+                    if (Math.random() < 0.05) choice = 'click frenzy';
                 } else if (r < bloodFrenzyChance + cursedFingerChance) {
                     choice = 'cursed finger';
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
@@ -164,16 +167,40 @@ Game.registerMod("fthof_planner_internal", {
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance + lumpChance) {
                     choice = 'sugar lump';
                 } else {
-                    if ((r * 100) % 2 < 1) choice = 'clot';
+                    if (Math.random() < 0.5) choice = 'clot';
                     else choice = 'ruins';
                 }
+                
+                let blabChance = 0.1;
+                if (auraLvl) blabChance *= 1.1;
+                if (Math.random() < blabChance) choice = 'blab';
             }
 
-            let color = isBackfire ? '#f55' : '#6f6';
-            let localizedName = loc(choice) || choice;
-            return `<span style="color: ${color};">${localizedName}</span>`;
+            Math.seedrandom();
+
+            return loc(choice) || choice;
+        }
+
+        function getFailCondition(spellsCast) {
+            let activeSeed = getCookieClickerSeedFromGame();
+            Math.seedrandom(activeSeed + '/' + spellsCast);
+            let failRoll = Math.random();
+            Math.seedrandom();
+
+            let baseFailChance = 0.15;
+            if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
+            if (Game.hasAura('Reality Bending')) baseFailChance *= 1.01;
+
+            for (let gcs = 0; gcs <= 6; gcs++) {
+                let actualFailChance = baseFailChance + (gcs * 0.15);
+                if (failRoll < actualFailChance) {
+                    return gcs.toString();
+                }
+            }
+            return "6+";
         }
     },
     save: function() {},
     load: function() {}
 });
+
