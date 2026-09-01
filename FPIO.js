@@ -1,9 +1,9 @@
 Game.registerMod("fthof_planner_internal", {
     init: function() {
-        let cCOldUpdateMenu = Game.UpdateMenu;
+        let oldUpdateMenu = Game.UpdateMenu;
         
         Game.UpdateMenu = function() {
-            cCOldUpdateMenu();
+            oldUpdateMenu();
             
             if (Game.onMenu == 'options') {
                 let menu = document.getElementById('menu');
@@ -86,21 +86,9 @@ Game.registerMod("fthof_planner_internal", {
 
             let choice = list[Math.floor(Math.random() * list.length)];
             
-            const officialTranslations = {
-                'frenzy': loc("frenzy"),
-                'multiply cookies': loc("multiply cookies"),
-                'click frenzy': loc("click frenzy"),
-                'blood frenzy': loc("blood frenzy"),
-                'building special': loc("building special"),
-                'sugar lump': loc("sugar lump"),
-                'clot': loc("clot"),
-                'ruins': loc("ruins"),
-                'cursed finger': loc("cursed finger")
-            };
-
             Math.seedrandom();
 
-            return officialTranslations[choice] || choice;
+            return loc(choice) || choice;
         }
     },
     save: function() {},
