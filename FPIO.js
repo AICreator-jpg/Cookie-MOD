@@ -65,7 +65,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v16.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v17.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -120,8 +120,6 @@ Game.registerMod("fthof_planner_internal", {
             
             localRng(); 
 
-            if (isSeasonMod) localRng();
-
             let choice = '';
             let auraLvl = Game.hasAura('Supreme Intellect');
             
@@ -149,8 +147,12 @@ Game.registerMod("fthof_planner_internal", {
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
                     choice = 'sugar lump';
                 } else {
-                    if (localRng() < 0.5) choice = 'frenzy';
-                    else choice = 'multiply cookies';
+                    let list = ['frenzy', 'multiply cookies'];
+                    if (isSeasonMod) list.push('season_placeholder_cookie');
+                    choice = list[Math.floor(localRng() * list.length)];
+                    if (choice === 'season_placeholder_cookie') {
+                        choice = 'frenzy'; 
+                    }
                 }
                 
                 let blabChance = 0.15;
@@ -180,8 +182,12 @@ Game.registerMod("fthof_planner_internal", {
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance + lumpChance) {
                     choice = 'sugar lump';
                 } else {
-                    if (localRng() < 0.5) choice = 'clot';
-                    else choice = 'ruins';
+                    let list = ['clot', 'ruins'];
+                    if (isSeasonMod) list.push('season_placeholder_cookie');
+                    choice = list[Math.floor(localRng() * list.length)];
+                    if (choice === 'season_placeholder_cookie') {
+                        choice = 'clot'; 
+                    }
                 }
                 
                 let blabChance = 0.1;
