@@ -1,9 +1,5 @@
 Game.registerMod("fthof_planner_internal", {
     init: function() {
-        if (!Game.fthof_base_random) {
-            Game.fthof_base_random = Math.random;
-        }
-
         let oldUpdateMenu = Game.UpdateMenu;
         Game.UpdateMenu = function() {
             oldUpdateMenu();
@@ -20,6 +16,30 @@ Game.registerMod("fthof_planner_internal", {
                     renderFtHoFPlanner();
                 }, 10);
                 return result;
+            };
+        }
+
+        function createFortuneCookieRng(seedStr) {
+            let key = [];
+            for (let i = 0; i < seedStr.length; i++) {
+                key[i] = seedStr.charCodeAt(i);
+            }
+            let s = [];
+            for (let i = 0; i < 256; i++) s[i] = i;
+            let j = 0;
+            for (let i = 0; i < 256; i++) {
+                j = (j + s[i] + (key[i % key.length] || 0)) % 256;
+                let t = s[i]; s[i] = s[j]; s[j] = t;
+            }
+            let i = 0; let k = 0;
+            return function() {
+                let r = 0;
+                for (let m = 0; k = (k + 1) % 256, m < 4; m++) {
+                    i = (i + s[k]) % 256;
+                    let t = s[k]; s[k] = s[i]; s[i] = t;
+                    r = r * 256 + s[(s[k] + s[i]) % 256];
+                }
+                return r / 4294967296;
             };
         }
 
@@ -45,7 +65,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v15.1.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v16.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -96,20 +116,17 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function predictFtHoF(spellsCast, backfire, isSeasonMod) {
-            if (Game.fthof_base_random) {
-                Math.random = Game.fthof_base_random;
-            }
+            let localRng = createFortuneCookieRng(Game.seed + '/' + spellsCast);
             
-            Math.seedrandom(Game.seed + '/' + spellsCast);
-            
-            Math.random(); 
-            if (isSeasonMod) Math.random();
+            localRng(); 
+
+            if (isSeasonMod) localRng();
 
             let choice = '';
             let auraLvl = Game.hasAura('Supreme Intellect');
             
             if (!backfire) {
-                let r = Math.random();
+                let r = localRng();
                 let clickFrenzyChance = 0.15;
                 let bldgSpecChance = 0.1;
                 let stormChance = 0.1;
@@ -124,7 +141,7 @@ Game.registerMod("fthof_planner_internal", {
                 
                 if (r < clickFrenzyChance) {
                     choice = 'click frenzy';
-                    if (Math.random() < 0.05) choice = 'blood frenzy';
+                    if (localRng() < 0.05) choice = 'blood frenzy';
                 } else if (r < clickFrenzyChance + bldgSpecChance) {
                     choice = 'building special';
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
@@ -132,15 +149,15 @@ Game.registerMod("fthof_planner_internal", {
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
                     choice = 'sugar lump';
                 } else {
-                    if (Math.random() < 0.5) choice = 'frenzy';
+                    if (localRng() < 0.5) choice = 'frenzy';
                     else choice = 'multiply cookies';
                 }
                 
                 let blabChance = 0.15;
                 if (auraLvl) blabChance *= 1.1;
-                if (Math.random() < blabChance) choice = 'blab';
+                if (localRng() < blabChance) choice = 'blab';
             } else {
-                let r = Math.random();
+                let r = localRng();
                 let bloodFrenzyChance = 0.1;
                 let cursedFingerChance = 0.1;
                 let stormChance = 0.1;
@@ -155,7 +172,7 @@ Game.registerMod("fthof_planner_internal", {
                 
                 if (r < bloodFrenzyChance) {
                     choice = 'blood frenzy';
-                    if (Math.random() < 0.05) choice = 'click frenzy';
+                    if (localRng() < 0.05) choice = 'click frenzy';
                 } else if (r < bloodFrenzyChance + cursedFingerChance) {
                     choice = 'cursed finger';
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
@@ -163,33 +180,21 @@ Game.registerMod("fthof_planner_internal", {
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance + lumpChance) {
                     choice = 'sugar lump';
                 } else {
-                    if (Math.random() < 0.5) choice = 'clot';
+                    if (localRng() < 0.5) choice = 'clot';
                     else choice = 'ruins';
                 }
                 
                 let blabChance = 0.1;
                 if (auraLvl) blabChance *= 1.1;
-                if (Math.random() < blabChance) choice = 'blab';
-            }
-
-            if (Game.fthof_base_random) {
-                Math.random = Game.fthof_base_random;
+                if (localRng() < blabChance) choice = 'blab';
             }
 
             return loc(choice) || choice;
         }
 
         function getFailCondition(spellsCast) {
-            if (Game.fthof_base_random) {
-                Math.random = Game.fthof_base_random;
-            }
-
-            Math.seedrandom(Game.seed + '/' + spellsCast);
-            let failRoll = Math.random();
-
-            if (Game.fthof_base_random) {
-                Math.random = Game.fthof_base_random;
-            }
+            let localRng = createFortuneCookieRng(Game.seed + '/' + spellsCast);
+            let failRoll = localRng();
 
             let baseFailChance = 0.15;
             if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
