@@ -3,20 +3,6 @@
     if (typeof Game !== "undefined" && Game.ready) {
       clearInterval(checkReady);
       
-      var modUrl = 'https://github.io';
-      
-      try {
-        if (typeof localStorage !== "undefined") {
-          var storeData = localStorage.getItem('CookieClickerGameMods');
-          var sObj = storeData ? JSON.parse(storeData) : {};
-          sObj['Automatic_Cookie'] = modUrl;
-          localStorage.setItem('CookieClickerGameMods', JSON.stringify(sObj));
-        }
-        if (typeof Game.modsV2 !== "undefined") {
-          Game.modsV2['Automatic_Cookie'] = modUrl;
-        }
-      } catch(e) {}
-      
       var modObject = {
         id: 'Automatic_Cookie',
         name: 'Automatic_Cookie',
@@ -224,9 +210,11 @@
             }
           }, 500);
           
-          Game.Notify("Automation MOD", "ver 32.0", "", 1);
+          Game.Notify("Automation MOD", "ver 33.0", "", 1);
         },
-        save: function() { return ""; },
+        save: function() {
+          return "https://github.io";
+        },
         load: function(str) {}
       };
       
