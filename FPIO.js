@@ -5,24 +5,23 @@ Game.registerMod("fthof_planner_test", {
         Game.UpdateMenu = function() {
             oldUpdateMenu();
             
-            if (Game.onMenu == 'options') {
+            if (Game.onMenu == 'prefs' || Game.onMenu == 'options') {
                 let menu = document.getElementById('menu');
-                if (!menu) return;
+                if (menu) {
+                    let existing = document.getElementById('custom-test-element');
+                    if (existing) existing.remove();
 
-                let existing = document.getElementById('custom-test-element');
-                if (existing) existing.remove();
+                    let div = document.createElement('div');
+                    div.id = 'custom-test-element';
+                    div.className = 'listing';
+                    div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; text-align: center; font-size: 18px; color: #fff;';
+                    div.innerHTML = 'テスト (v1.0.0)';
 
-                let div = document.createElement('div');
-                div.id = 'custom-test-element';
-                div.className = 'listing';
-                div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; text-align: center; font-size: 18px; color: #fff;';
-                div.innerHTML = 'テスト';
-
-                menu.appendChild(div);
+                    menu.appendChild(div);
+                }
             }
         };
     },
     save: function() {},
     load: function() {}
-});
 });
