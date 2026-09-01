@@ -75,7 +75,7 @@ Game.registerMod("fthof_planner_internal", {
             html += `
                     </tbody>
                 </table>
-                <p style="font-size: 10px; color: #888; margin-top: 8px; text-align: center;">※本家FtHoF Planner（既存GC=0、チャイムなし、シーズンなし設定）の計算と完全同期しています。</p>
+                <p style="font-size: 10px; color: #888; margin-top: 8px; text-align: center;">
             `;
 
             div.innerHTML = html;
