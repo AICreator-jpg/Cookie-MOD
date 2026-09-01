@@ -5,7 +5,7 @@ Game.registerMod("fthof_planner_test", {
         Game.UpdateMenu = function() {
             oldUpdateMenu();
             
-            if (Game.onMenu == 'prefs' || Game.onMenu == 'options') {
+            if (Game.onMenu == 'prefs') {
                 let menu = document.getElementById('menu');
                 if (menu) {
                     let existing = document.getElementById('custom-test-element');
