@@ -41,7 +41,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v5.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v6.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -49,11 +49,8 @@ Game.registerMod("fthof_planner_internal", {
                         <tr style="border-bottom: 1px solid #555; color: #add8e6; text-align: center;">
                             <th style="padding: 4px; text-align: left;">先の手数</th>
                             <th style="padding: 4px;">総詠唱</th>
-                            <th style="padding: 4px; color: #6f6;">通常 成功</th>
-                            <th style="padding: 4px; color: #ffd700;">4季 成功</th>
-                            <th style="padding: 4px; color: #f55;">通常 失敗</th>
-                            <th style="padding: 4px; color: #ffb6c1;">4季 失敗</th>
-                            <th style="padding: 4px; color: #ff7f50;">失敗条件 (GC数)</th>
+                            <th style="padding: 4px; color: #ffd700;">シーズン無 / クリスマス</th>
+                            <th style="padding: 4px; color: #ffb6c1;">特定4シーズン</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -62,22 +59,15 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let normalSuccess = predictFtHoF(futureCast, 0, 0);
-                let seasonSuccess = predictFtHoF(futureCast, 0, 1);
-                let normalFail = predictFtHoF(futureCast, 1, 0);
-                let seasonFail = predictFtHoF(futureCast, 1, 1);
-                
-                let failCondition = getFailCondition(futureCast);
+                let normalResult = calculateFtHoFOutcome(futureCast, 0);
+                let seasonResult = calculateFtHoFOutcome(futureCast, 1);
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
                         <td style="padding: 6px; text-align: left; color: #aaa;">+${i} 手目</td>
                         <td style="padding: 6px; font-weight: bold;">${futureCast}</td>
-                        <td style="padding: 6px; color: #6f6;">${normalSuccess}</td>
-                        <td style="padding: 6px; color: #ffd700;">${seasonSuccess}</td>
-                        <td style="padding: 6px; color: #f55;">${normalFail}</td>
-                        <td style="padding: 6px; color: #ffb6c1;">${seasonFail}</td>
-                        <td style="padding: 6px; color: #ff7f50; font-weight: bold;">${failCondition}</td>
+                        <td style="padding: 6px;">${normalResult}</td>
+                        <td style="padding: 6px;">${seasonResult}</td>
                     </tr>
                 `;
             }
@@ -91,16 +81,36 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
 
-        function predictFtHoF(spellsCast, backfire, isSeasonMod) {
+        function calculateFtHoFOutcome(spellsCast, isSeasonMod) {
             Math.seedrandom(Game.seed + '/' + spellsCast);
             
-            Math.random(); 
+            let backfireRoll = Math.random();
             if (isSeasonMod) Math.random();
+
+            let baseFailChance = 0.15;
+            if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
+            if (Game.hasAura('Reality Bending')) baseFailChance *= 1.01;
+
+            let neededGCsToFail = "N";
+            for (let gcs = 0; gcs <= 4; gcs++) {
+                let actualFailChance = baseFailChance + (gcs * 0.15);
+                if (backfireRoll < actualFailChance) {
+                    neededGCsToFail = gcs.toString();
+                    break;
+                }
+            }
+
+            let isBackfire = false;
+            let currentGCs = Game.shimmerTypes['golden'].n;
+            let currentFailChance = baseFailChance + (currentGCs * 0.15);
+            if (backfireRoll < currentFailChance) {
+                isBackfire = true;
+            }
 
             let choice = '';
             let auraLvl = Game.hasAura('Supreme Intellect');
             
-            if (!backfire) {
+            if (!isBackfire) {
                 let r = Math.random();
                 let clickFrenzyChance = 0.15;
                 let bldgSpecChance = 0.1;
@@ -166,27 +176,9 @@ Game.registerMod("fthof_planner_internal", {
 
             Math.seedrandom();
 
-            return loc(choice) || choice;
-        }
-
-        function getFailCondition(spellsCast) {
-            Math.seedrandom(Game.seed + '/' + spellsCast);
-            let failRoll = Math.random();
-            Math.seedrandom();
-
-            let tower = Game.Objects['Wizard tower'];
-            if (!tower || !tower.minigame) return "0枚以上";
-            
-            let M = tower.minigame;
-            let baseChance = 0.15;
-            if (Game.hasBackfireUpgrade) baseChance = M.getFailChance(Game.hasBackfireUpgrade); 
-            
-            if (failRoll < baseChance) return "0枚以上";
-            if (failRoll < baseChance + 0.15) return "1枚以上";
-            if (failRoll < baseChance + 0.30) return "2枚以上";
-            if (failRoll < baseChance + 0.45) return "3枚以上";
-            
-            return "不発/安全";
+            let color = isBackfire ? '#f55' : '#6f6';
+            let localizedName = loc(choice) || choice;
+            return `<span style="color: ${color};">${localizedName}</span> <span style="color: #ff7f50; font-weight: bold; font-size: 10px;">(${neededGCsToFail})</span>`;
         }
     },
     save: function() {},
