@@ -1,5 +1,9 @@
 Game.registerMod("fthof_planner_internal", {
     init: function() {
+        if (!Game.fthof_base_random) {
+            Game.fthof_base_random = Math.random;
+        }
+
         let oldUpdateMenu = Game.UpdateMenu;
         Game.UpdateMenu = function() {
             oldUpdateMenu();
@@ -41,7 +45,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v14.2.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v15.1.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -92,7 +96,9 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function predictFtHoF(spellsCast, backfire, isSeasonMod) {
-            let nextOriginalRandom = Math.random;
+            if (Game.fthof_base_random) {
+                Math.random = Game.fthof_base_random;
+            }
             
             Math.seedrandom(Game.seed + '/' + spellsCast);
             
@@ -166,18 +172,24 @@ Game.registerMod("fthof_planner_internal", {
                 if (Math.random() < blabChance) choice = 'blab';
             }
 
-            Math.random = nextOriginalRandom;
+            if (Game.fthof_base_random) {
+                Math.random = Game.fthof_base_random;
+            }
 
             return loc(choice) || choice;
         }
 
         function getFailCondition(spellsCast) {
-            let nextOriginalRandom = Math.random;
+            if (Game.fthof_base_random) {
+                Math.random = Game.fthof_base_random;
+            }
 
             Math.seedrandom(Game.seed + '/' + spellsCast);
             let failRoll = Math.random();
 
-            Math.random = nextOriginalRandom;
+            if (Game.fthof_base_random) {
+                Math.random = Game.fthof_base_random;
+            }
 
             let baseFailChance = 0.15;
             if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
@@ -195,4 +207,3 @@ Game.registerMod("fthof_planner_internal", {
     save: function() {},
     load: function() {}
 });
-
