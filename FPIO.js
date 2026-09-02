@@ -29,16 +29,14 @@ Game.registerMod("fthof_planner_internal", {
                 key[i] = seedStr.charCodeAt(i);
             }
             
-            let j = 0;
             for (let i = 0; i < seedStr.length; i++) {
-                j = (j + seedStr.charCodeAt(i)) & (width - 1);
-                mix[i] = j;
+                mix[i] = ((mix[i - 1] || 0) + seedStr.charCodeAt(i)) & (width - 1);
             }
 
             let s = [];
             for (let i = 0; i < width; i++) s[i] = i;
             
-            j = 0;
+            let j = 0;
             for (let i = 0; i < width; i++) {
                 j = (j + s[i] + (key[i % key.length] || 0) + (mix[i % mix.length] || 0)) & (width - 1);
                 let t = s[i]; s[i] = s[j]; s[j] = t;
@@ -95,7 +93,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v53.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v54.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -115,7 +113,7 @@ Game.registerMod("fthof_planner_internal", {
             `;
 
             for (let i = 1; i <= 10; i++) {
-                let futureCast = spellsCount + (i - 1);
+                let futureCast = spellsCount + i;
                 
                 let localRngForSeed = createTrueFtHoFMathRandom(trueSeed + futureCast);
                 localRngForSeed();
