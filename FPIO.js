@@ -7,21 +7,31 @@ Game.registerMod("fthof_planner_internal", {
         };
 
         let tower = Game.Objects['Wizard tower'];
-        if (tower) {
-            let checkMinigame = setInterval(function() {
-                if (tower.minigame) {
-                    clearInterval(checkMinigame);
-                    let M = tower.minigame;
-                    let oldCastSpell = M.castSpell;
-                    M.castSpell = function(spell, obj) {
-                        let result = oldCastSpell(spell, obj);
-                        setTimeout(function() {
-                            renderFtHoFPlanner();
-                        }, 10);
-                        return result;
-                    };
+        if (tower && tower.minigame) {
+            let M = tower.minigame;
+            let oldCastSpell = M.castSpell;
+            M.castSpell = function(spell, obj) {
+                let result = oldCastSpell(spell, obj);
+                setTimeout(function() {
+                    renderFtHoFPlanner();
+                }, 10);
+                return result;
+            };
+        }
+
+        function createLiveRngSimulator() {
+            let originalRandom = Math.random;
+            let buffer = [];
+            for (let i = 0; i < 300; i++) {
+                buffer.push(originalRandom());
+            }
+            let index = 0;
+            return function() {
+                if (index >= buffer.length) {
+                    buffer.push(originalRandom());
                 }
-            }, 1000);
+                return buffer[index++];
+            };
         }
 
         function renderFtHoFPlanner() {
@@ -31,7 +41,7 @@ Game.registerMod("fthof_planner_internal", {
             if (!menu) return;
 
             let currentTower = Game.Objects['Wizard tower'];
-            if (!currentTower || !currentTower.minigame || !Math.seedrandom) return;
+            if (!currentTower || !currentTower.minigame) return;
             
             let M = currentTower.minigame;
             let spellsCount = M.spellsCastTotal;
@@ -44,12 +54,13 @@ Game.registerMod("fthof_planner_internal", {
             div.className = 'listing';
             div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);';
 
-            let trueSeed = Game.seed || "unknown";
+            let currentSeedId = Game.seed || "unknown";
+            let sharedLiveRng = createLiveRngSimulator();
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v33.0.0)</h3>
-                    <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v34.0.0)</h3>
+                    <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在のRNG識別シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${currentSeedId}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
                     <thead>
@@ -70,16 +81,15 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let localRngForSeed = Math.seedrandom(trueSeed + '/' + futureCast, { global: false });
-                localRngForSeed();
-                let rawSeedValue = localRngForSeed();
+                sharedLiveRng();
+                let rawSeedValue = sharedLiveRng();
 
-                let normalSuccess = predictFtHoF(futureCast, 0, 0, trueSeed);
-                let seasonSuccess = predictFtHoF(futureCast, 0, 1, trueSeed);
-                let normalFail = predictFtHoF(futureCast, 1, 0, trueSeed);
-                let seasonFail = predictFtHoF(futureCast, 1, 1, trueSeed);
+                let normalSuccess = predictFtHoF(0, 0, sharedLiveRng);
+                let seasonSuccess = predictFtHoF(0, 1, sharedLiveRng);
+                let normalFail = predictFtHoF(1, 0, sharedLiveRng);
+                let seasonFail = predictFtHoF(1, 1, sharedLiveRng);
                 
-                let failCondition = getFailCondition(futureCast, trueSeed);
+                let failCondition = getFailCondition(sharedLiveRng);
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
@@ -103,13 +113,16 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = html;
             menu.appendChild(div);
         }
-        function predictFtHoF(spellsCast, backfire, isSeasonMod, trueSeed) {
-            let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
-            localRng();
+        function predictFtHoF(backfire, isSeasonMod, liveRng) {
+            liveRng(); 
+
+            if (isSeasonMod) liveRng();
+
             let choice = '';
-            let auraLvl = Game.hasAura('20');
+            let auraLvl = Game.hasAura('supreme intellect');
+            
             if (!backfire) {
-                let r = localRng();
+                let r = liveRng();
                 let clickFrenzyChance = 0.15;
                 let bldgSpecChance = 0.1;
                 let stormChance = 0.1;
@@ -122,7 +135,7 @@ Game.registerMod("fthof_planner_internal", {
                 }
                 if (r < clickFrenzyChance) {
                     choice = 'click frenzy';
-                    if (localRng() < 0.05) choice = 'blood frenzy';
+                    if (liveRng() < 0.05) choice = 'blood frenzy';
                 } else if (r < clickFrenzyChance + bldgSpecChance) {
                     choice = 'building special';
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
@@ -132,16 +145,16 @@ Game.registerMod("fthof_planner_internal", {
                 } else {
                     let list = ['frenzy', 'multiply cookies'];
                     if (isSeasonMod) list.push('season_placeholder_cookie');
-                    choice = list[Math.floor(localRng() * list.length)];
+                    choice = list[Math.floor(liveRng() * list.length)];
                     if (choice === 'season_placeholder_cookie') {
                         choice = 'frenzy'; 
                     }
                 }
                 let blabChance = 0.15;
                 if (auraLvl) blabChance *= 1.1;
-                if (localRng() < blabChance) choice = 'blab';
+                if (liveRng() < blabChance) choice = 'blab';
             } else {
-                let r = localRng();
+                let r = liveRng();
                 let bloodFrenzyChance = 0.1;
                 let cursedFingerChance = 0.1;
                 let stormChance = 0.1;
@@ -154,7 +167,7 @@ Game.registerMod("fthof_planner_internal", {
                 }
                 if (r < bloodFrenzyChance) {
                     choice = 'blood frenzy';
-                    if (localRng() < 0.05) choice = 'click frenzy';
+                    if (liveRng() < 0.05) choice = 'click frenzy';
                 } else if (r < bloodFrenzyChance + cursedFingerChance) {
                     choice = 'cursed finger';
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
@@ -164,21 +177,20 @@ Game.registerMod("fthof_planner_internal", {
                 } else {
                     let list = ['clot', 'ruins'];
                     if (isSeasonMod) list.push('season_placeholder_cookie');
-                    choice = list[Math.floor(localRng() * list.length)];
+                    choice = list[Math.floor(liveRng() * list.length)];
                     if (choice === 'season_placeholder_cookie') {
                         choice = 'clot'; 
                     }
                 }
                 let blabChance = 0.1;
                 if (auraLvl) blabChance *= 1.1;
-                if (localRng() < blabChance) choice = 'blab';
+                if (liveRng() < blabChance) choice = 'blab';
             }
             return loc(choice) || choice;
         }
 
-        function getFailCondition(spellsCast, trueSeed) {
-            let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
-            let failRoll = localRng();
+        function getFailCondition(liveRng) {
+            let failRoll = liveRng();
             let baseFailChance = 0.15;
             if (Game.hasAura('supreme intellect')) baseFailChance *= 1.1;
             if (Game.hasAura('reality bending')) baseFailChance *= 1.01;
