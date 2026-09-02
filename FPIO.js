@@ -19,22 +19,6 @@ Game.registerMod("fthof_planner_internal", {
             };
         }
 
-        function getTrueBakerySeed() {
-            try {
-                let saveCode = Game.WriteSave(1);
-                let cleanSave = saveCode.split('%21END%21')[0].replace(/%3D/g, '=');
-                let decodedText = atob(unescape(cleanSave));
-                let sections = decodedText.split('|');
-                if (sections.length > 2) {
-                    let stats = sections[2].split(';');
-                    if (stats.length > 4) {
-                        return stats[4];
-                    }
-                }
-            } catch (e) {}
-            return Game.seed;
-        }
-
         function renderFtHoFPlanner() {
             if (Game.onMenu != 'prefs') return;
 
@@ -55,11 +39,11 @@ Game.registerMod("fthof_planner_internal", {
             div.className = 'listing';
             div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);';
 
-            let trueSeed = getTrueBakerySeed();
+            let trueSeed = (Game.legacy && Game.legacy.seed) ? Game.legacy.seed : Game.seed;
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v24.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v25.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
