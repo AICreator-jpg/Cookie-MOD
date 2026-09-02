@@ -67,7 +67,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v37.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v38.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -90,7 +90,6 @@ Game.registerMod("fthof_planner_internal", {
                 let futureCast = spellsCount + (i - 1);
                 
                 let localRngForSeed = createFortuneCookieRng(trueSeed + '/' + futureCast);
-                localRngForSeed();
                 let rawSeedValue = localRngForSeed();
 
                 let normalSuccess = predictFtHoF(futureCast, 0, 0, trueSeed);
@@ -196,12 +195,7 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function getFailCondition(rawSeedValue) {
-            let baseFailChance = 0.15;
-            if (Game.hasAura('supreme intellect')) baseFailChance += 0.05;
-            if (Game.hasAura('reality bending')) baseFailChance += 0.005;
-            
             let neededGCs = Math.floor((1 - rawSeedValue) / 0.15);
-            
             if (neededGCs <= 0) return "0";
             if (neededGCs > 6) return "6+";
             return neededGCs.toString();
