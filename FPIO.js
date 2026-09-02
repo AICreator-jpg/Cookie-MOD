@@ -107,7 +107,7 @@ Game.registerMod("fthof_planner_internal", {
             let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
             localRng();
             let choice = '';
-            let auraLvl = Game.hasAura('supreme intellect');
+            let auraLvl = Game.hasAura('20');
             if (!backfire) {
                 let r = localRng();
                 let clickFrenzyChance = 0.15;
