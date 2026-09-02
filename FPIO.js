@@ -46,12 +46,12 @@ Game.registerMod("fthof_planner_internal", {
 
                 let rawSeedValue = Math.seedrandom(trueSeed + '/' + futureCast, { global: false })();
 
-                let normalSuccess = Game.mods['fthof_planner_internal'].predictFtHoF(0, 0, normalRng);
-                let seasonSuccess = Game.mods['fthof_planner_internal'].predictFtHoF(0, 1, seasonRng);
-                let normalFail = Game.mods['fthof_planner_internal'].predictFtHoF(1, 0, normalFailRng);
-                let seasonFail = Game.mods['fthof_planner_internal'].predictFtHoF(1, 1, seasonFailRng);
+                let normalSuccess = predictRawFtHoF(0, 0, normalRng);
+                let seasonSuccess = predictRawFtHoF(0, 1, seasonRng);
+                let normalFail = predictRawFtHoF(1, 0, normalFailRng);
+                let seasonFail = predictRawFtHoF(1, 1, seasonFailRng);
                 
-                let failCondition = Game.mods['fthof_planner_internal'].getFailCondition(rawSeedValue);
+                let failCondition = getRawFailCondition(rawSeedValue);
 
                 Game.fthof_planner_cache.push({
                     futureCast: futureCast,
@@ -65,6 +65,84 @@ Game.registerMod("fthof_planner_internal", {
             }
         }
 
+        function predictRawFtHoF(backfire, isSeasonMod, localRng) {
+            localRng();
+            let choice = '';
+            let auraLvl = Game.hasAura('supreme intellect');
+            if (!backfire) {
+                let r = localRng();
+                let clickFrenzyChance = 0.15;
+                let bldgSpecChance = 0.1;
+                let stormChance = 0.1;
+                let lumpChance = 0.01;
+                if (auraLvl) {
+                    clickFrenzyChance *= 1.1;
+                    bldgSpecChance *= 1.1;
+                    stormChance *= 1.1;
+                    lumpChance *= 1.1;
+                }
+                if (r < clickFrenzyChance) {
+                    choice = 'click frenzy';
+                    if (localRng() < 0.05) choice = 'blood frenzy';
+                } else if (r < clickFrenzyChance + bldgSpecChance) {
+                    choice = 'building special';
+                } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
+                    choice = 'cookie storm';
+                } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
+                    choice = 'sugar lump';
+                } else {
+                    let list = ['frenzy', 'multiply cookies'];
+                    if (isSeasonMod) list.push('season_placeholder_cookie');
+                    choice = list[Math.floor(localRng() * list.length)];
+                    if (choice === 'season_placeholder_cookie') {
+                        choice = 'frenzy'; 
+                    }
+                }
+                let blabChance = 0.15;
+                if (auraLvl) blabChance *= 1.1;
+                if (localRng() < blabChance) choice = 'blab';
+            } else {
+                let r = localRng();
+                let bloodFrenzyChance = 0.1;
+                let cursedFingerChance = 0.1;
+                let stormChance = 0.1;
+                let lumpChance = 0.003;
+                if (auraLvl) {
+                    bloodFrenzyChance *= 1.1;
+                    cursedFingerChance *= 1.1;
+                    stormChance *= 1.1;
+                    lumpChance *= 1.1;
+                }
+                if (r < bloodFrenzyChance) {
+                    choice = 'blood frenzy';
+                    if (localRng() < 0.05) choice = 'click frenzy';
+                } else if (r < bloodFrenzyChance + cursedFingerChance) {
+                    choice = 'cursed finger';
+                } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
+                    choice = 'cookie storm';
+                } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance + lumpChance) {
+                    choice = 'sugar lump';
+                } else {
+                    let list = ['clot', 'ruins'];
+                    if (isSeasonMod) list.push('season_placeholder_cookie');
+                    choice = list[Math.floor(localRng() * list.length)];
+                    if (choice === 'season_placeholder_cookie') {
+                        choice = 'clot'; 
+                    }
+                }
+                let blabChance = 0.1;
+                if (auraLvl) blabChance *= 1.1;
+                if (localRng() < blabChance) choice = 'blab';
+            }
+            return loc(choice) || choice;
+        }
+
+        function getRawFailCondition(rawSeedValue) {
+            let neededGCs = Math.floor((1 - rawSeedValue) / 0.15);
+            if (neededGCs <= 0) return "0";
+            if (neededGCs > 6) return "6+";
+            return neededGCs.toString();
+        }
         function renderFtHoFPlanner() {
             if (Game.onMenu != 'prefs') return;
 
@@ -85,7 +163,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v45.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v46.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${Game.fthof_planner_last_count}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -128,83 +206,6 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = html;
             menu.appendChild(div);
         }
-    predictFtHoF: function(backfire, isSeasonMod, localRng) {
-        localRng();
-        let choice = '';
-        let auraLvl = Game.hasAura('supreme intellect');
-        if (!backfire) {
-            let r = localRng();
-            let clickFrenzyChance = 0.15;
-            let bldgSpecChance = 0.1;
-            let stormChance = 0.1;
-            let lumpChance = 0.01;
-            if (auraLvl) {
-                clickFrenzyChance *= 1.1;
-                bldgSpecChance *= 1.1;
-                stormChance *= 1.1;
-                lumpChance *= 1.1;
-            }
-            if (r < clickFrenzyChance) {
-                choice = 'click frenzy';
-                if (localRng() < 0.05) choice = 'blood frenzy';
-            } else if (r < clickFrenzyChance + bldgSpecChance) {
-                choice = 'building special';
-            } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
-                choice = 'cookie storm';
-            } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
-                choice = 'sugar lump';
-            } else {
-                let list = ['frenzy', 'multiply cookies'];
-                if (isSeasonMod) list.push('season_placeholder_cookie');
-                choice = list[Math.floor(localRng() * list.length)];
-                if (choice === 'season_placeholder_cookie') {
-                    choice = 'frenzy'; 
-                }
-            }
-            let blabChance = 0.15;
-            if (auraLvl) blabChance *= 1.1;
-            if (localRng() < blabChance) choice = 'blab';
-        } else {
-            let r = localRng();
-            let bloodFrenzyChance = 0.1;
-            let cursedFingerChance = 0.1;
-            let stormChance = 0.1;
-            let lumpChance = 0.003;
-            if (auraLvl) {
-                bloodFrenzyChance *= 1.1;
-                cursedFingerChance *= 1.1;
-                stormChance *= 1.1;
-                lumpChance *= 1.1;
-            }
-            if (r < bloodFrenzyChance) {
-                choice = 'blood frenzy';
-                if (localRng() < 0.05) choice = 'click frenzy';
-            } else if (r < bloodFrenzyChance + cursedFingerChance) {
-                choice = 'cursed finger';
-            } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
-                choice = 'cookie storm';
-            } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance + lumpChance) {
-                choice = 'sugar lump';
-            } else {
-                let list = ['clot', 'ruins'];
-                if (isSeasonMod) list.push('season_placeholder_cookie');
-                choice = list[Math.floor(localRng() * list.length)];
-                if (choice === 'season_placeholder_cookie') {
-                    choice = 'clot'; 
-                }
-            }
-            let blabChance = 0.1;
-            if (auraLvl) blabChance *= 1.1;
-            if (localRng() < blabChance) choice = 'blab';
-        }
-        return loc(choice) || choice;
-    },
-
-    getFailCondition: function(rawSeedValue) {
-        let neededGCs = Math.floor((1 - rawSeedValue) / 0.15);
-        if (neededGCs <= 0) return "0";
-        if (neededGCs > 6) return "6+";
-        return neededGCs.toString();
     },
     save: function() {},
     load: function() {}
