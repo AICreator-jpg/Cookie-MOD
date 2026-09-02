@@ -19,21 +19,6 @@ Game.registerMod("fthof_planner_internal", {
             };
         }
 
-        function createLiveRngSimulator() {
-            let originalRandom = Math.random;
-            let buffer = [];
-            for (let i = 0; i < 100; i++) {
-                buffer.push(originalRandom());
-            }
-            let index = 0;
-            return function() {
-                if (index >= buffer.length) {
-                    buffer.push(originalRandom());
-                }
-                return buffer[index++];
-            };
-        }
-
         function renderFtHoFPlanner() {
             if (Game.onMenu != 'prefs') return;
 
@@ -41,7 +26,7 @@ Game.registerMod("fthof_planner_internal", {
             if (!menu) return;
 
             let currentTower = Game.Objects['Wizard tower'];
-            if (!currentTower || !currentTower.minigame) return;
+            if (!currentTower || !currentTower.minigame || !Math.seedrandom) return;
             
             let M = currentTower.minigame;
             let spellsCount = M.spellsCastTotal;
@@ -54,10 +39,12 @@ Game.registerMod("fthof_planner_internal", {
             div.className = 'listing';
             div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);';
 
+            let trueSeed = Game.seed || "unknown";
+
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v20.0.0)</h3>
-                    <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v20.1.0)</h3>
+                    <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
                     <thead>
@@ -77,12 +64,12 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let normalSuccess = predictFtHoF(0, 0, createLiveRngSimulator());
-                let seasonSuccess = predictFtHoF(0, 1, createLiveRngSimulator());
-                let normalFail = predictFtHoF(1, 0, createLiveRngSimulator());
-                let seasonFail = predictFtHoF(1, 1, createLiveRngSimulator());
+                let normalSuccess = predictFtHoF(futureCast, 0, 0, trueSeed);
+                let seasonSuccess = predictFtHoF(futureCast, 0, 1, trueSeed);
+                let normalFail = predictFtHoF(futureCast, 1, 0, trueSeed);
+                let seasonFail = predictFtHoF(futureCast, 1, 1, trueSeed);
                 
-                let failCondition = getFailCondition(createLiveRngSimulator());
+                let failCondition = getFailCondition(futureCast, trueSeed);
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
@@ -105,31 +92,26 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = html;
             menu.appendChild(div);
         }
-        function predictFtHoF(backfire, isSeasonMod, liveRng) {
-            liveRng(); 
-
-            if (isSeasonMod) liveRng();
-
+        function predictFtHoF(spellsCast, backfire, isSeasonMod, trueSeed) {
+            let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
+            localRng();
             let choice = '';
-            let auraLvl = Game.hasAura('Supreme Intellect');
-            
+            let auraLvl = Game.hasAura('supreme intellect');
             if (!backfire) {
-                let r = liveRng();
+                let r = localRng();
                 let clickFrenzyChance = 0.15;
                 let bldgSpecChance = 0.1;
                 let stormChance = 0.1;
                 let lumpChance = 0.01;
-                
                 if (auraLvl) {
                     clickFrenzyChance *= 1.1;
                     bldgSpecChance *= 1.1;
                     stormChance *= 1.1;
                     lumpChance *= 1.1;
                 }
-                
                 if (r < clickFrenzyChance) {
                     choice = 'click frenzy';
-                    if (liveRng() < 0.05) choice = 'blood frenzy';
+                    if (localRng() < 0.05) choice = 'blood frenzy';
                 } else if (r < clickFrenzyChance + bldgSpecChance) {
                     choice = 'building special';
                 } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
@@ -139,32 +121,29 @@ Game.registerMod("fthof_planner_internal", {
                 } else {
                     let list = ['frenzy', 'multiply cookies'];
                     if (isSeasonMod) list.push('season_placeholder_cookie');
-                    choice = list[Math.floor(liveRng() * list.length)];
+                    choice = list[Math.floor(localRng() * list.length)];
                     if (choice === 'season_placeholder_cookie') {
                         choice = 'frenzy'; 
                     }
                 }
-                
                 let blabChance = 0.15;
                 if (auraLvl) blabChance *= 1.1;
-                if (liveRng() < blabChance) choice = 'blab';
+                if (localRng() < blabChance) choice = 'blab';
             } else {
-                let r = liveRng();
+                let r = localRng();
                 let bloodFrenzyChance = 0.1;
                 let cursedFingerChance = 0.1;
                 let stormChance = 0.1;
                 let lumpChance = 0.003;
-                
                 if (auraLvl) {
                     bloodFrenzyChance *= 1.1;
                     cursedFingerChance *= 1.1;
                     stormChance *= 1.1;
                     lumpChance *= 1.1;
                 }
-                
                 if (r < bloodFrenzyChance) {
                     choice = 'blood frenzy';
-                    if (liveRng() < 0.05) choice = 'click frenzy';
+                    if (localRng() < 0.05) choice = 'click frenzy';
                 } else if (r < bloodFrenzyChance + cursedFingerChance) {
                     choice = 'cursed finger';
                 } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
@@ -174,27 +153,24 @@ Game.registerMod("fthof_planner_internal", {
                 } else {
                     let list = ['clot', 'ruins'];
                     if (isSeasonMod) list.push('season_placeholder_cookie');
-                    choice = list[Math.floor(liveRng() * list.length)];
+                    choice = list[Math.floor(localRng() * list.length)];
                     if (choice === 'season_placeholder_cookie') {
                         choice = 'clot'; 
                     }
                 }
-                
                 let blabChance = 0.1;
                 if (auraLvl) blabChance *= 1.1;
-                if (liveRng() < blabChance) choice = 'blab';
+                if (localRng() < blabChance) choice = 'blab';
             }
-
             return loc(choice) || choice;
         }
 
-        function getFailCondition(liveRng) {
-            let failRoll = liveRng();
-
+        function getFailCondition(spellsCast, trueSeed) {
+            let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
+            let failRoll = localRng();
             let baseFailChance = 0.15;
-            if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
-            if (Game.hasAura('Reality Bending')) baseFailChance *= 1.01;
-
+            if (Game.hasAura('supreme intellect')) baseFailChance *= 1.1;
+            if (Game.hasAura('reality bending')) baseFailChance *= 1.01;
             for (let gcs = 0; gcs <= 6; gcs++) {
                 let actualFailChance = baseFailChance + (gcs * 0.15);
                 if (failRoll < actualFailChance) {
