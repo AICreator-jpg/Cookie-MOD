@@ -22,12 +22,17 @@ Game.registerMod("fthof_planner_internal", {
         function getTrueBakerySeed() {
             try {
                 let saveCode = Game.WriteSave(1);
-                let decodedText = atob(unescape(saveCode.split('%21END%21')[0]));
-                let seed = decodedText.split('|')[1].split(';')[4];
-                return seed;
-            } catch (e) {
-                return Game.seed;
-            }
+                let cleanSave = saveCode.split('%21END%21')[0].replace(/%3D/g, '=');
+                let decodedText = atob(unescape(cleanSave));
+                let sections = decodedText.split('|');
+                if (sections.length > 2) {
+                    let stats = sections[2].split(';');
+                    if (stats.length > 4) {
+                        return stats[4];
+                    }
+                }
+            } catch (e) {}
+            return Game.seed;
         }
 
         function renderFtHoFPlanner() {
@@ -54,19 +59,20 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v21.0.0)</h3>
-                    <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v24.0.0)</h3>
+                    <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
                     <thead>
                         <tr style="border-bottom: 1px solid #555; color: #add8e6; text-align: center;">
-                            <th style="padding: 4px; text-align: left; width: 10%;">Spell #</th>
-                            <th style="padding: 4px; width: 10%;">総詠唱</th>
-                            <th style="padding: 4px; color: #6f6; width: 20%;">通常 成功</th>
-                            <th style="padding: 4px; color: #ffd700; width: 20%;">4季 成功</th>
-                            <th style="padding: 4px; color: #f55; width: 20%;">通常 失敗</th>
-                            <th style="padding: 4px; color: #ffb6c1; width: 20%;">4季 失敗</th>
-                            <th style="padding: 4px; color: #ff7f50; width: 10%;">条件 (GC数)</th>
+                            <th style="padding: 4px; text-align: left; width: 8%;">Spell #</th>
+                            <th style="padding: 4px; width: 8%;">総詠唱</th>
+                            <th style="padding: 4px; width: 14%;">Random Seed</th>
+                            <th style="padding: 4px; color: #6f6; width: 18%;">通常 成功</th>
+                            <th style="padding: 4px; color: #ffd700; width: 18%;">4季 成功</th>
+                            <th style="padding: 4px; color: #f55; width: 18%;">通常 失敗</th>
+                            <th style="padding: 4px; color: #ffb6c1; width: 18%;">4季 失敗</th>
+                            <th style="padding: 4px; color: #ff7f50; width: 6%;">GC数</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -75,6 +81,9 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
+                let localRng = new Game.math.seedrandom(trueSeed + '/' + futureCast);
+                let rawSeedValue = localRng();
+
                 let normalSuccess = predictFtHoF(futureCast, 0, 0, trueSeed);
                 let seasonSuccess = predictFtHoF(futureCast, 0, 1, trueSeed);
                 let normalFail = predictFtHoF(futureCast, 1, 0, trueSeed);
@@ -86,6 +95,7 @@ Game.registerMod("fthof_planner_internal", {
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
                         <td style="padding: 6px; text-align: left; color: #aaa;">+${i}</td>
                         <td style="padding: 6px; font-weight: bold;">${futureCast}</td>
+                        <td style="padding: 6px; font-family: monospace; color: #add8e6;">${rawSeedValue.toFixed(6)}</td>
                         <td style="padding: 6px; color: #6f6;">${normalSuccess}</td>
                         <td style="padding: 6px; color: #ffd700;">${seasonSuccess}</td>
                         <td style="padding: 6px; color: #f55;">${normalFail}</td>
@@ -108,7 +118,7 @@ Game.registerMod("fthof_planner_internal", {
             let localRng = new Game.math.seedrandom(trueSeed + '/' + spellsCast);
             localRng();
             let choice = '';
-            let auraLvl = Game.hasAura('Supreme Intellect');
+            let auraLvl = Game.hasAura('supreme intellect');
             if (!backfire) {
                 let r = localRng();
                 let clickFrenzyChance = 0.15;
@@ -181,8 +191,8 @@ Game.registerMod("fthof_planner_internal", {
             let localRng = new Game.math.seedrandom(trueSeed + '/' + spellsCast);
             let failRoll = localRng();
             let baseFailChance = 0.15;
-            if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
-            if (Game.hasAura('Reality Bending')) baseFailChance *= 1.01;
+            if (Game.hasAura('supreme intellect')) baseFailChance *= 1.1;
+            if (Game.hasAura('reality bending')) baseFailChance *= 1.01;
             for (let gcs = 0; gcs <= 6; gcs++) {
                 let actualFailChance = baseFailChance + (gcs * 0.15);
                 if (failRoll < actualFailChance) {
@@ -195,3 +205,4 @@ Game.registerMod("fthof_planner_internal", {
     save: function() {},
     load: function() {}
 });
+
