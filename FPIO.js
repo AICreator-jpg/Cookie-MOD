@@ -32,7 +32,7 @@ Game.registerMod("fthof_planner_internal", {
                 s[i] = i;
             }
 
-            let seedStr = seed.toString();
+            let seedStr = String(seed);
             for (let i = 0; i < seedStr.length; i++) {
                 key[i & (width - 1)] = seedStr.charCodeAt(i);
             }
@@ -102,7 +102,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v66.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v67.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -124,7 +124,7 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + i;
                 
-                let localRngForSeed = createTrueFtHoFMathRandom(trueSeed + '/' + futureCast);
+                let localRngForSeed = createTrueFtHoFMathRandom(String(trueSeed) + '/' + String(futureCast));
                 localRngForSeed();
                 let rawSeedValue = localRngForSeed();
 
@@ -158,7 +158,7 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
         function predictFtHoF(spellsCast, backfire, isSeasonMod, trueSeed) {
-            let localRng = createTrueFtHoFMathRandom(trueSeed + '/' + spellsCast);
+            let localRng = createTrueFtHoFMathRandom(String(trueSeed) + '/' + String(spellsCast));
             localRng();
             let choice = '';
             let auraLvl = Game.hasAura('supreme intellect');
