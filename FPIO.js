@@ -67,7 +67,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v36.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v37.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -98,7 +98,7 @@ Game.registerMod("fthof_planner_internal", {
                 let normalFail = predictFtHoF(futureCast, 1, 0, trueSeed);
                 let seasonFail = predictFtHoF(futureCast, 1, 1, trueSeed);
                 
-                let failCondition = getFailCondition(futureCast, trueSeed);
+                let failCondition = getFailCondition(rawSeedValue);
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
@@ -195,19 +195,16 @@ Game.registerMod("fthof_planner_internal", {
             return loc(choice) || choice;
         }
 
-        function getFailCondition(spellsCast, trueSeed) {
-            let localRng = createFortuneCookieRng(trueSeed + '/' + spellsCast);
-            let failRoll = localRng();
+        function getFailCondition(rawSeedValue) {
             let baseFailChance = 0.15;
             if (Game.hasAura('supreme intellect')) baseFailChance += 0.05;
             if (Game.hasAura('reality bending')) baseFailChance += 0.005;
-            for (let gcs = 0; gcs <= 6; gcs++) {
-                let actualFailChance = baseFailChance + (gcs * 0.15);
-                if (failRoll < actualFailChance) {
-                    return gcs.toString();
-                }
-            }
-            return "6+";
+            
+            let neededGCs = Math.floor((1 - rawSeedValue) / 0.15);
+            
+            if (neededGCs <= 0) return "0";
+            if (neededGCs > 6) return "6+";
+            return neededGCs.toString();
         }
     },
     save: function() {},
