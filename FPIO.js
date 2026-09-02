@@ -31,7 +31,7 @@ Game.registerMod("fthof_planner_internal", {
             if (!menu) return;
 
             let currentTower = Game.Objects['Wizard tower'];
-            if (!currentTower || !currentTower.minigame) return;
+            if (!currentTower || !currentTower.minigame || !Math.seedrandom) return;
             
             let M = currentTower.minigame;
             let spellsCount = M.spellsCastTotal;
@@ -48,7 +48,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v32.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v33.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -70,7 +70,7 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let localRngForSeed = new Math.seedrandom(trueSeed + '/' + futureCast, { global: false });
+                let localRngForSeed = Math.seedrandom(trueSeed + '/' + futureCast, { global: false });
                 localRngForSeed();
                 let rawSeedValue = localRngForSeed();
 
@@ -104,7 +104,7 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
         function predictFtHoF(spellsCast, backfire, isSeasonMod, trueSeed) {
-            let localRng = new Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
+            let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
             localRng();
             let choice = '';
             let auraLvl = Game.hasAura('supreme intellect');
@@ -177,7 +177,7 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function getFailCondition(spellsCast, trueSeed) {
-            let localRng = new Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
+            let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
             let failRoll = localRng();
             let baseFailChance = 0.15;
             if (Game.hasAura('supreme intellect')) baseFailChance *= 1.1;
