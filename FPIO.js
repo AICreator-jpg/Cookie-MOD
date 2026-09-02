@@ -19,6 +19,30 @@ Game.registerMod("fthof_planner_internal", {
             };
         }
 
+        function createFortuneCookieRng(seedStr) {
+            let key = [];
+            for (let i = 0; i < seedStr.length; i++) {
+                key[i] = seedStr.charCodeAt(i);
+            }
+            let s = [];
+            for (let i = 0; i < 256; i++) s[i] = i;
+            let j = 0;
+            for (let i = 0; i < 256; i++) {
+                j = (j + s[i] + (key[i % key.length] || 0)) % 256;
+                let t = s[i]; s[i] = s[j]; s[j] = t;
+            }
+            let i = 0; let k = 0;
+            return function() {
+                let r = 0;
+                for (let m = 0; k = (k + 1) % 256, m < 4; m++) {
+                    i = (i + s[k]) % 256;
+                    let t = s[k]; s[k] = s[i]; s[i] = t;
+                    r = r * 256 + s[(s[k] + s[i]) % 256];
+                }
+                return r / 4294967296;
+            };
+        }
+
         function renderFtHoFPlanner() {
             if (Game.onMenu != 'prefs') return;
 
@@ -26,7 +50,7 @@ Game.registerMod("fthof_planner_internal", {
             if (!menu) return;
 
             let currentTower = Game.Objects['Wizard tower'];
-            if (!currentTower || !currentTower.minigame || !Math.seedrandom) return;
+            if (!currentTower || !currentTower.minigame) return;
             
             let M = currentTower.minigame;
             let spellsCount = M.spellsCastTotal;
@@ -43,7 +67,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v20.1.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v35.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -93,7 +117,7 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
         function predictFtHoF(spellsCast, backfire, isSeasonMod, trueSeed) {
-            let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
+            let localRng = createFortuneCookieRng(trueSeed + '/' + spellsCast);
             localRng();
             let choice = '';
             let auraLvl = Game.hasAura('supreme intellect');
@@ -166,7 +190,7 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function getFailCondition(spellsCast, trueSeed) {
-            let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
+            let localRng = createFortuneCookieRng(trueSeed + '/' + spellsCast);
             let failRoll = localRng();
             let baseFailChance = 0.15;
             if (Game.hasAura('supreme intellect')) baseFailChance *= 1.1;
