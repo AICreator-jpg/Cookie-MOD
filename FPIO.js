@@ -22,22 +22,31 @@ Game.registerMod("fthof_planner_internal", {
         function createTrueFtHoFMathRandom(seedStr) {
             let width = 256;
             let chunks = 6;
+            let digits = 52;
             let key = [];
             let mix = [];
+            
             for (let i = 0; i < seedStr.length; i++) {
                 key[i & (width - 1)] = seedStr.charCodeAt(i);
             }
             while (key.length < width) key.push(0);
+            
+            let j = 0;
             for (let i = 0; i < seedStr.length; i++) {
-                mix[i & (width - 1)] = (mix[i & (width - 1)] || 0) ^ seedStr.charCodeAt(i);
+                j = (j + seedStr.charCodeAt(i)) & (width - 1);
+                mix[i & (width - 1)] = j;
             }
+            while (mix.length < width) mix.push(0);
+
             let s = [];
             for (let i = 0; i < width; i++) s[i] = i;
-            let j = 0;
+            
+            j = 0;
             for (let i = 0; i < width; i++) {
-                j = (j + s[i] + key[i]) & (width - 1);
+                j = (j + s[i] + key[i] + mix[i]) & (width - 1);
                 let t = s[i]; s[i] = s[j]; s[j] = t;
             }
+
             let i = 0; j = 0;
             function g(count) {
                 let r = 0;
@@ -49,17 +58,19 @@ Game.registerMod("fthof_planner_internal", {
                 }
                 return r;
             }
-            let base = g(chunks);
-            let n = Math.pow(width, chunks);
-            let mask = base / n;
+
+            g(width);
+
             return function() {
                 let r = g(chunks);
-                let x = 0;
+                let base = Math.pow(width, chunks);
+                let n = 0;
                 while (r < 281474976710656) {
-                    r = (r + x) * width;
-                    x = g(1);
+                    r = (r + n) * width;
+                    base = base * width;
+                    n = g(1);
                 }
-                return r / 4503599627370496;
+                return r / base;
             };
         }
 
@@ -87,7 +98,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v48.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v49.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -143,6 +154,7 @@ Game.registerMod("fthof_planner_internal", {
         }
         function predictFtHoF(spellsCast, backfire, isSeasonMod, trueSeed) {
             let localRng = createTrueFtHoFMathRandom(trueSeed + spellsCast);
+            localRng();
             let choice = '';
             let auraLvl = Game.hasAura('supreme intellect');
             if (!backfire) {
