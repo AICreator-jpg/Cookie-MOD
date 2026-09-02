@@ -1,6 +1,5 @@
 Game.registerMod("fthof_planner_internal", {
     init: function() {
-        // ゲーム本体のオプションメニュー構築配列に、自作の描画関数を登録する
         if (!Game.customOptionsMenu) Game.customOptionsMenu = [];
         Game.customOptionsMenu.push(function() {
             let currentTower = Game.Objects['Wizard tower'];
