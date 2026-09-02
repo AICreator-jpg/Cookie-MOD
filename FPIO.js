@@ -19,27 +19,47 @@ Game.registerMod("fthof_planner_internal", {
             };
         }
 
-        function createFortuneCookieRng(seedStr) {
+        function createTrueFtHoFMathRandom(seedStr) {
+            let width = 256;
+            let chunks = 6;
             let key = [];
+            let mix = [];
             for (let i = 0; i < seedStr.length; i++) {
-                key[i] = seedStr.charCodeAt(i);
+                key[i & (width - 1)] = seedStr.charCodeAt(i);
+            }
+            while (key.length < width) key.push(0);
+            for (let i = 0; i < seedStr.length; i++) {
+                mix[i & (width - 1)] = (mix[i & (width - 1)] || 0) ^ seedStr.charCodeAt(i);
             }
             let s = [];
-            for (let i = 0; i < 256; i++) s[i] = i;
+            for (let i = 0; i < width; i++) s[i] = i;
             let j = 0;
-            for (let i = 0; i < 256; i++) {
-                j = (j + s[i] + (key[i % key.length] || 0)) % 256;
+            for (let i = 0; i < width; i++) {
+                j = (j + s[i] + key[i]) & (width - 1);
                 let t = s[i]; s[i] = s[j]; s[j] = t;
             }
-            let i = 0; let k = 0;
-            return function() {
+            let i = 0; j = 0;
+            function g(count) {
                 let r = 0;
-                for (let m = 0; k = (k + 1) % 256, m < 4; m++) {
-                    i = (i + s[k]) % 256;
-                    let t = s[k]; s[k] = s[i]; s[i] = t;
-                    r = r * 256 + s[(s[k] + s[i]) % 256];
+                while (count--) {
+                    i = (i + 1) & (width - 1);
+                    j = (j + s[i]) & (width - 1);
+                    let t = s[i]; s[i] = s[j]; s[j] = t;
+                    r = r * width + s[(s[i] + s[j]) & (width - 1)];
                 }
-                return r / 4294967296;
+                return r;
+            }
+            let base = g(chunks);
+            let n = Math.pow(width, chunks);
+            let mask = base / n;
+            return function() {
+                let r = g(chunks);
+                let x = 0;
+                while (r < 281474976710656) {
+                    r = (r + x) * width;
+                    x = g(1);
+                }
+                return r / 4503599627370496;
             };
         }
 
@@ -67,7 +87,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v47.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v48.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -89,7 +109,7 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let localRngForSeed = createFortuneCookieRng(trueSeed + '/' + futureCast);
+                let localRngForSeed = createTrueFtHoFMathRandom(trueSeed + futureCast);
                 let rawSeedValue = localRngForSeed();
 
                 let normalSuccess = predictFtHoF(futureCast, 0, 0, trueSeed);
@@ -122,7 +142,7 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
         function predictFtHoF(spellsCast, backfire, isSeasonMod, trueSeed) {
-            let localRng = createFortuneCookieRng(trueSeed + '/' + spellsCast);
+            let localRng = createTrueFtHoFMathRandom(trueSeed + spellsCast);
             let choice = '';
             let auraLvl = Game.hasAura('supreme intellect');
             if (!backfire) {
@@ -166,7 +186,7 @@ Game.registerMod("fthof_planner_internal", {
                 if (auraLvl) {
                     bloodFrenzyChance *= 1.1;
                     cursedFingerChance *= 1.1;
-                    stormFingerChance = 0.1;
+                    stormChance *= 1.1;
                     lumpChance *= 1.1;
                 }
                 if (r < bloodFrenzyChance) {
