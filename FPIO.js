@@ -19,16 +19,45 @@ Game.registerMod("fthof_planner_internal", {
             };
         }
 
-        function createBakingRng(seedStr) {
-            let hash = 0;
+        function createTrueFtHoFMathRandom(seedStr) {
+            let width = 256;
+            let chunks = 6;
+            let mix = 0;
+            let key = [];
+            
+            for (let i = 0; i < width; i++) key[i] = 0;
+            
             for (let i = 0; i < seedStr.length; i++) {
-                hash = (hash << 5) - hash + seedStr.charCodeAt(i);
-                hash |= 0;
+                mix = (mix * 19) + seedStr.charCodeAt(i);
+                mix = mix & 0xFFFFFFFF;
+                key[i & (width - 1)] = mix & (width - 1);
             }
-            let currentSeed = hash;
+
+            let s = [];
+            for (let i = 0; i < width; i++) s[i] = i;
+            
+            let j = 0;
+            for (let i = 0; i < width; i++) {
+                j = (j + s[i] + key[i]) & (width - 1);
+                let t = s[i]; s[i] = s[j]; s[j] = t;
+            }
+
+            let i_idx = 0; let j_idx = 0;
+            function g(count) {
+                let r = 0;
+                while (count--) {
+                    i_idx = (i_idx + 1) & (width - 1);
+                    j_idx = (j_idx + s[i_idx]) & (width - 1);
+                    let t = s[i_idx]; s[i_idx] = s[j_idx]; s[j_idx] = t;
+                    r = r * width + s[(s[i_idx] + s[j_idx]) & (width - 1)];
+                }
+                return r;
+            }
+
             return function() {
-                let x = Math.sin(currentSeed++) * 10000;
-                return x - Math.floor(x);
+                let r = g(chunks);
+                let base = Math.pow(width, chunks);
+                return r / base;
             };
         }
 
@@ -56,7 +85,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v62.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v63.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -78,7 +107,7 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + i;
                 
-                let localRngForSeed = createBakingRng(trueSeed + futureCast);
+                let localRngForSeed = createTrueFtHoFMathRandom(trueSeed + '/' + futureCast);
                 localRngForSeed();
                 let rawSeedValue = localRngForSeed();
 
@@ -112,7 +141,7 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
         function predictFtHoF(spellsCast, backfire, isSeasonMod, trueSeed) {
-            let localRng = createBakingRng(trueSeed + spellsCast);
+            let localRng = createTrueFtHoFMathRandom(trueSeed + '/' + spellsCast);
             localRng();
             let choice = '';
             let auraLvl = Game.hasAura('supreme intellect');
