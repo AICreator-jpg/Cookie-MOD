@@ -43,7 +43,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v43.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v44.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -65,14 +65,17 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                let localRng = Math.seedrandom(trueSeed + '/' + futureCast, { global: false });
-                localRng();
-                let rawSeedValue = localRng();
+                let normalRng = Math.seedrandom(trueSeed + '/' + futureCast, { global: false });
+                let seasonRng = Math.seedrandom(trueSeed + '/' + futureCast, { global: false });
+                let normalFailRng = Math.seedrandom(trueSeed + '/' + futureCast, { global: false });
+                let seasonFailRng = Math.seedrandom(trueSeed + '/' + futureCast, { global: false });
 
-                let normalSuccess = predictFtHoF(futureCast, 0, 0, trueSeed);
-                let seasonSuccess = predictFtHoF(futureCast, 0, 1, trueSeed);
-                let normalFail = predictFtHoF(futureCast, 1, 0, trueSeed);
-                let seasonFail = predictFtHoF(futureCast, 1, 1, trueSeed);
+                let rawSeedValue = Math.seedrandom(trueSeed + '/' + futureCast, { global: false })();
+
+                let normalSuccess = predictFtHoF(0, 0, normalRng);
+                let seasonSuccess = predictFtHoF(0, 1, seasonRng);
+                let normalFail = predictFtHoF(1, 0, normalFailRng);
+                let seasonFail = predictFtHoF(1, 1, seasonFailRng);
                 
                 let failCondition = getFailCondition(rawSeedValue);
 
@@ -98,8 +101,7 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = html;
             menu.appendChild(div);
         }
-        function predictFtHoF(spellsCast, backfire, isSeasonMod, trueSeed) {
-            let localRng = Math.seedrandom(trueSeed + '/' + spellsCast, { global: false });
+        function predictFtHoF(backfire, isSeasonMod, localRng) {
             localRng();
             let choice = '';
             let auraLvl = Game.hasAura('supreme intellect');
