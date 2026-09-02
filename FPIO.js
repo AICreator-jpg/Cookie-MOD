@@ -45,7 +45,7 @@ Game.registerMod("fthof_planner_internal", {
 
                 let html = `
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v69.0.0)</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v70.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -164,7 +164,7 @@ Game.registerMod("fthof_planner_internal", {
                     if (r < bloodFrenzyChance) {
                         choice = 'blood frenzy';
                         if (localRng() < 0.05) choice = 'click frenzy';
-                    } else if (r < bloodFrenzyChance + cursedFingerFinger) {
+                    } else if (r < bloodFrenzyChance + cursedFingerChance) {
                         choice = 'cursed finger';
                     } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
                         choice = 'cookie storm';
