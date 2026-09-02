@@ -23,17 +23,27 @@ Game.registerMod("fthof_planner_internal", {
             let width = 256;
             let chunks = 6;
             let key = [];
+            let mix = [];
+            
             for (let i = 0; i < seedStr.length; i++) {
-                key[i & (width - 1)] = seedStr.charCodeAt(i);
+                key[i] = seedStr.charCodeAt(i);
             }
-            while (key.length < width) key.push(0);
+            
+            let j = 0;
+            for (let i = 0; i < seedStr.length; i++) {
+                j = (j + seedStr.charCodeAt(i)) & (width - 1);
+                mix[i] = j;
+            }
+
             let s = [];
             for (let i = 0; i < width; i++) s[i] = i;
-            let j = 0;
+            
+            j = 0;
             for (let i = 0; i < width; i++) {
-                j = (j + s[i] + key[i]) & (width - 1);
+                j = (j + s[i] + (key[i % key.length] || 0) + (mix[i % mix.length] || 0)) & (width - 1);
                 let t = s[i]; s[i] = s[j]; s[j] = t;
             }
+
             let i = 0; j = 0;
             function g(count) {
                 let r = 0;
@@ -45,7 +55,9 @@ Game.registerMod("fthof_planner_internal", {
                 }
                 return r;
             }
+
             g(width);
+
             return function() {
                 let r = g(chunks);
                 let base = Math.pow(width, chunks);
@@ -83,7 +95,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v52.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v53.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
