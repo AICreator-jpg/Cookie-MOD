@@ -22,7 +22,7 @@ Game.registerMod("fthof_planner_internal", {
         function createLiveRngSimulator() {
             let originalRandom = Math.random;
             let buffer = [];
-            for (let i = 0; i < 300; i++) {
+            for (let i = 0; i < 100; i++) {
                 buffer.push(originalRandom());
             }
             let index = 0;
@@ -35,7 +35,7 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function renderFtHoFPlanner() {
-            if (Game.onMenu != 'Prefs') return;
+            if (Game.onMenu != 'prefs') return;
 
             let menu = document.getElementById('menu');
             if (!menu) return;
@@ -54,25 +54,21 @@ Game.registerMod("fthof_planner_internal", {
             div.className = 'listing';
             div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);';
 
-            let currentSeedId = Game.seed || "unknown";
-            let sharedLiveRng = createLiveRngSimulator();
-
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v34.0.0)</h3>
-                    <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在のRNG識別シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${currentSeedId}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v20.0.0)</h3>
+                    <p style="font-size: 11px; color: #ccc; margin: 5px 0;">現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
                     <thead>
                         <tr style="border-bottom: 1px solid #555; color: #add8e6; text-align: center;">
-                            <th style="padding: 4px; text-align: left; width: 8%;">Spell #</th>
-                            <th style="padding: 4px; width: 8%;">総詠唱</th>
-                            <th style="padding: 4px; width: 14%;">Random Seed</th>
-                            <th style="padding: 4px; color: #6f6; width: 18%;">通常 成功</th>
-                            <th style="padding: 4px; color: #ffd700; width: 18%;">4季 成功</th>
-                            <th style="padding: 4px; color: #f55; width: 18%;">通常 失敗</th>
-                            <th style="padding: 4px; color: #ffb6c1; width: 18%;">4季 失敗</th>
-                            <th style="padding: 4px; color: #ff7f50; width: 6%;">GC数</th>
+                            <th style="padding: 4px; text-align: left; width: 10%;">Spell #</th>
+                            <th style="padding: 4px; width: 10%;">総詠唱</th>
+                            <th style="padding: 4px; color: #6f6; width: 20%;">通常 成功</th>
+                            <th style="padding: 4px; color: #ffd700; width: 20%;">4季 成功</th>
+                            <th style="padding: 4px; color: #f55; width: 20%;">通常 失敗</th>
+                            <th style="padding: 4px; color: #ffb6c1; width: 20%;">4季 失敗</th>
+                            <th style="padding: 4px; color: #ff7f50; width: 10%;">条件 (GC数)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -81,21 +77,17 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 1; i <= 10; i++) {
                 let futureCast = spellsCount + (i - 1);
                 
-                sharedLiveRng();
-                let rawSeedValue = sharedLiveRng();
-
-                let normalSuccess = predictFtHoF(0, 0, sharedLiveRng);
-                let seasonSuccess = predictFtHoF(0, 1, sharedLiveRng);
-                let normalFail = predictFtHoF(1, 0, sharedLiveRng);
-                let seasonFail = predictFtHoF(1, 1, sharedLiveRng);
+                let normalSuccess = predictFtHoF(0, 0, createLiveRngSimulator());
+                let seasonSuccess = predictFtHoF(0, 1, createLiveRngSimulator());
+                let normalFail = predictFtHoF(1, 0, createLiveRngSimulator());
+                let seasonFail = predictFtHoF(1, 1, createLiveRngSimulator());
                 
-                let failCondition = getFailCondition(sharedLiveRng);
+                let failCondition = getFailCondition(createLiveRngSimulator());
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
                         <td style="padding: 6px; text-align: left; color: #aaa;">+${i}</td>
                         <td style="padding: 6px; font-weight: bold;">${futureCast}</td>
-                        <td style="padding: 6px; font-family: monospace; color: #add8e6;">${rawSeedValue.toFixed(6)}</td>
                         <td style="padding: 6px; color: #6f6;">${normalSuccess}</td>
                         <td style="padding: 6px; color: #ffd700;">${seasonSuccess}</td>
                         <td style="padding: 6px; color: #f55;">${normalFail}</td>
@@ -119,7 +111,7 @@ Game.registerMod("fthof_planner_internal", {
             if (isSeasonMod) liveRng();
 
             let choice = '';
-            let auraLvl = Game.hasAura('supreme intellect');
+            let auraLvl = Game.hasAura('Supreme Intellect');
             
             if (!backfire) {
                 let r = liveRng();
@@ -127,12 +119,14 @@ Game.registerMod("fthof_planner_internal", {
                 let bldgSpecChance = 0.1;
                 let stormChance = 0.1;
                 let lumpChance = 0.01;
+                
                 if (auraLvl) {
                     clickFrenzyChance *= 1.1;
                     bldgSpecChance *= 1.1;
                     stormChance *= 1.1;
                     lumpChance *= 1.1;
                 }
+                
                 if (r < clickFrenzyChance) {
                     choice = 'click frenzy';
                     if (liveRng() < 0.05) choice = 'blood frenzy';
@@ -150,6 +144,7 @@ Game.registerMod("fthof_planner_internal", {
                         choice = 'frenzy'; 
                     }
                 }
+                
                 let blabChance = 0.15;
                 if (auraLvl) blabChance *= 1.1;
                 if (liveRng() < blabChance) choice = 'blab';
@@ -159,12 +154,14 @@ Game.registerMod("fthof_planner_internal", {
                 let cursedFingerChance = 0.1;
                 let stormChance = 0.1;
                 let lumpChance = 0.003;
+                
                 if (auraLvl) {
                     bloodFrenzyChance *= 1.1;
                     cursedFingerChance *= 1.1;
                     stormChance *= 1.1;
                     lumpChance *= 1.1;
                 }
+                
                 if (r < bloodFrenzyChance) {
                     choice = 'blood frenzy';
                     if (liveRng() < 0.05) choice = 'click frenzy';
@@ -182,18 +179,22 @@ Game.registerMod("fthof_planner_internal", {
                         choice = 'clot'; 
                     }
                 }
+                
                 let blabChance = 0.1;
                 if (auraLvl) blabChance *= 1.1;
                 if (liveRng() < blabChance) choice = 'blab';
             }
+
             return loc(choice) || choice;
         }
 
         function getFailCondition(liveRng) {
             let failRoll = liveRng();
+
             let baseFailChance = 0.15;
-            if (Game.hasAura('supreme intellect')) baseFailChance *= 1.1;
-            if (Game.hasAura('reality bending')) baseFailChance *= 1.01;
+            if (Game.hasAura('Supreme Intellect')) baseFailChance *= 1.1;
+            if (Game.hasAura('Reality Bending')) baseFailChance *= 1.01;
+
             for (let gcs = 0; gcs <= 6; gcs++) {
                 let actualFailChance = baseFailChance + (gcs * 0.15);
                 if (failRoll < actualFailChance) {
