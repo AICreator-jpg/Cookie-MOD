@@ -62,7 +62,7 @@ Game.registerMod("fthof_planner_internal", {
                 while (count--) {
                     i_idx = (i_idx + 1) % 256;
                     j_idx = (j_idx + s[i_idx]) % 256;
-                    let t = s[i_idx]; s[i_idx] = s[j_idx]; s[j_idx] = t;
+                    let t = s[i_idx]; s[i_idx] = s[j_idx]; j_idx = (j_idx) & 255; s[j_idx] = t;
                     r = r * 256 + s[(s[i_idx] + s[j_idx]) % 256];
                 }
                 return r;
@@ -73,16 +73,14 @@ Game.registerMod("fthof_planner_internal", {
                 let t = Math.pow(256, chunks);
                 let r = 0;
                 while (n < 9007199254740992) {
-                    n = (n + r) * 256;
+                    n = (n + g(1)) * 256;
                     t = t * 256;
-                    r = g(1);
                 }
                 while (n >= 18014398509481984) {
                     n /= 2;
                     t /= 2;
-                    r >>>= 1;
                 }
-                let raw = (n + r) / t;
+                let raw = n / t;
                 return Math.floor(raw * 10000) / 10000;
             };
         }
@@ -104,7 +102,7 @@ Game.registerMod("fthof_planner_internal", {
 
                 let html = `
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v87.0.0)</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v88.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
