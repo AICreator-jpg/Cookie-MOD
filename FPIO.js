@@ -55,10 +55,6 @@ Game.registerMod("fthof_planner_internal", {
                 return s[(s[i_idx] + s[j_idx]) & (width - 1)];
             }
 
-            for (let k = 0; k < width; k++) {
-                drawSingleByte();
-            }
-
             return function() {
                 let top = 0;
                 for (let m = 0; m < 6; m++) {
@@ -93,7 +89,7 @@ Game.registerMod("fthof_planner_internal", {
 
                 let html = `
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v78.0.0)</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v79.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
