@@ -30,7 +30,6 @@ Game.registerMod("fthof_planner_internal", {
         function createTrueFtHoFMathRandom(seedStr) {
             let width = 256;
             let chunks = 6;
-            let digits = 52;
             let key = [];
             let mix = [];
             let s = [];
@@ -38,9 +37,8 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 0; i < width; i++) {
                 s[i] = i;
             }
-
             for (let i = 0; i < seedStr.length; i++) {
-                key[i & (width - 1)] = seedStr.charCodeAt(i);
+                key[i] = seedStr.charCodeAt(i);
             }
 
             let mix_val = 0;
@@ -52,35 +50,40 @@ Game.registerMod("fthof_planner_internal", {
 
             let j = 0;
             for (let i = 0; i < width; i++) {
-                j = (j + s[i] + key[i] + mix[i]) & (width - 1);
+                j = (j + s[i] + (key[i % key.length] || 0) + (mix[i % mix.length] || 0)) & (width - 1);
                 let t = s[i]; s[i] = s[j]; s[j] = t;
             }
 
             let i_idx = 0;
             let j_idx = 0;
+
             function g(count) {
                 let r = 0;
                 while (count--) {
-                    i_idx = (i_idx + 1) & (width - 1);
-                    j_idx = (j_idx + s[i_idx]) & (width - 1);
-                    let t = s[i_idx]; s[i_idx] = s[j_idx]; j_idx = (j_idx) & (width - 1); s[j_idx] = t;
-                    r = r * width + s[(s[i_idx] + s[j_idx]) & (width - 1)];
+                    i_idx = (i_idx + 1) % 256;
+                    j_idx = (j_idx + s[i_idx]) % 256;
+                    let t = s[i_idx]; s[i_idx] = s[j_idx]; s[j_idx] = t;
+                    r = r * 256 + s[(s[i_idx] + s[j_idx]) % 256];
                 }
                 return r;
             }
 
-            g(width);
-
             return function() {
-                let r = g(chunks);
-                let base = Math.pow(width, chunks);
-                let n = 0;
-                while (r < 281474976710656) {
-                    r = (r + n) * width;
-                    base = base * width;
-                    n = g(1);
+                let n = g(chunks);
+                let t = Math.pow(256, chunks);
+                let r = 0;
+                while (n < 9007199254740992) {
+                    n = (n + r) * 256;
+                    t = t * 256;
+                    r = g(1);
                 }
-                return r / base;
+                while (n >= 18014398509481984) {
+                    n /= 2;
+                    t /= 2;
+                    r >>>= 1;
+                }
+                let raw = (n + r) / t;
+                return Math.floor(raw * 10000) / 10000;
             };
         }
 
@@ -101,7 +104,7 @@ Game.registerMod("fthof_planner_internal", {
 
                 let html = `
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v83.0.0)</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v87.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
