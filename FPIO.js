@@ -93,7 +93,7 @@ Game.registerMod("fthof_planner_internal", {
 
                 let html = `
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v73.0.0)</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v74.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -164,19 +164,12 @@ Game.registerMod("fthof_planner_internal", {
             function predictRawFtHoF(backfire, isSeasonMod, localRng) {
                 localRng();
                 let choice = '';
-                let auraLvl = Game.hasAura('supreme intellect');
                 if (!backfire) {
                     let r = localRng();
                     let clickFrenzyChance = 0.15;
                     let bldgSpecChance = 0.1;
                     let stormChance = 0.1;
                     let lumpChance = 0.01;
-                    if (auraLvl) {
-                        clickFrenzyChance *= 1.1;
-                        bldgSpecChance *= 1.1;
-                        stormChance *= 1.1;
-                        lumpChance *= 1.1;
-                    }
                     if (r < clickFrenzyChance) {
                         choice = 'click frenzy';
                         if (localRng() < 0.05) choice = 'blood frenzy';
@@ -195,7 +188,6 @@ Game.registerMod("fthof_planner_internal", {
                         }
                     }
                     let blabChance = 0.15;
-                    if (auraLvl) blabChance *= 1.1;
                     if (localRng() < blabChance) choice = 'blab';
                 } else {
                     let r = localRng();
@@ -203,12 +195,6 @@ Game.registerMod("fthof_planner_internal", {
                     let cursedFingerChance = 0.1;
                     let stormChance = 0.1;
                     let lumpChance = 0.003;
-                    if (auraLvl) {
-                        bloodFrenzyChance *= 1.1;
-                        cursedFingerChance *= 1.1;
-                        stormChance *= 1.1;
-                        lumpChance *= 1.1;
-                    }
                     if (r < bloodFrenzyChance) {
                         choice = 'blood frenzy';
                         if (localRng() < 0.05) choice = 'click frenzy';
@@ -227,7 +213,6 @@ Game.registerMod("fthof_planner_internal", {
                         }
                     }
                     let blabChance = 0.1;
-                    if (auraLvl) blabChance *= 1.1;
                     if (localRng() < blabChance) choice = 'blab';
                 }
                 return loc(choice) || choice;
