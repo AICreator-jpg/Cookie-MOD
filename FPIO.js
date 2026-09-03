@@ -36,7 +36,6 @@ Game.registerMod("fthof_planner_internal", {
             for (let i = 0; i < width; i++) {
                 s[i] = i;
             }
-            
             for (let i = 0; i < seedStr.length; i++) {
                 key[i] = seedStr.charCodeAt(i);
             }
@@ -71,7 +70,8 @@ Game.registerMod("fthof_planner_internal", {
                     base = base * width;
                     n = g(1);
                 }
-                return r / base;
+                let raw = r / base;
+                return Math.floor(raw * 10000) / 10000;
             };
         }
 
@@ -93,7 +93,7 @@ Game.registerMod("fthof_planner_internal", {
 
                 let html = `
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v72.0.0)</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v73.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -135,7 +135,7 @@ Game.registerMod("fthof_planner_internal", {
                         <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
                             <td style="padding: 6px; text-align: left; color: #aaa;">+${i}</td>
                             <td style="padding: 6px; font-weight: bold;">${futureCast}</td>
-                            <td style="padding: 6px; font-family: monospace; color: #add8e6;">${rawSeedValue.toFixed(6)}</td>
+                            <td style="padding: 6px; font-family: monospace; color: #add8e6;">${rawSeedValue.toFixed(4)}</td>
                             <td style="padding: 6px; color: #6f6;">${normalSuccess}</td>
                             <td style="padding: 6px; color: #ffd700;">${seasonSuccess}</td>
                             <td style="padding: 6px; color: #f55;">${normalFail}</td>
