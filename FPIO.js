@@ -1,19 +1,104 @@
 Game.registerMod("fthof_planner_internal", {
     init: function() {
+        Game.fthof_planner_final_html = "";
+        Game.fthof_planner_last_count = -1;
+
+        let tower = Game.Objects['Wizard tower'];
+        if (tower && tower.minigame) {
+            let M = tower.minigame;
+            let oldCastSpell = M.castSpell;
+            M.castSpell = function(spell, obj) {
+                let result = oldCastSpell(spell, obj);
+                setTimeout(function() {
+                    Game.fthof_planner_last_count = -1;
+                    Game.fthof_planner_final_html = "";
+                    recalculateFtHoFPlanner();
+                }, 10);
+                return result;
+            };
+        }
+
         if (!Game.customPrefs) Game.customPrefs = [];
-        
         Game.customPrefs.push(function() {
+            if (Game.fthof_planner_final_html === "") {
+                recalculateFtHoFPlanner();
+            }
+            return Game.fthof_planner_final_html;
+        });
+
+        function createTrueFtHoFMathRandom(seedStr) {
+            let width = 256;
+            let chunks = 6;
+            let key = [];
+            let mix = [];
+            let s = [];
+            
+            for (let i = 0; i < width; i++) {
+                s[i] = i;
+            }
+            for (let i = 0; i < seedStr.length; i++) {
+                key[i] = seedStr.charCodeAt(i);
+            }
+
+            let mix_val = 0;
+            for (let i = 0; i < seedStr.length; i++) {
+                mix_val = (mix_val * 19) + seedStr.charCodeAt(i);
+                mix_val = mix_val | 0;
+                mix[i & (width - 1)] = mix_val & (width - 1);
+            }
+
+            let j = 0;
+            for (let i = 0; i < width; i++) {
+                j = (j + s[i] + (key[i % key.length] || 0) + (mix[i % mix.length] || 0)) & (width - 1);
+                let t = s[i]; s[i] = s[j]; s[j] = t;
+            }
+
+            let i_idx = 0;
+            let j_idx = 0;
+
+            function g(count) {
+                let r = 0;
+                while (count--) {
+                    i_idx = (i_idx + 1) % 256;
+                    j_idx = (j_idx + s[i_idx]) % 256;
+                    let t = s[i_idx]; s[i_idx] = s[j_idx]; j_idx = (j_idx) & 255; s[j_idx] = t;
+                    r = r * 256 + s[(s[i_idx] + s[j_idx]) % 256];
+                }
+                return r;
+            }
+
+            return function() {
+                let n = g(chunks);
+                let t = Math.pow(256, chunks);
+                let r = 0;
+                while (n < 9007199254740992) {
+                    n = (n + g(1)) * 256;
+                    t = t * 256;
+                }
+                while (n >= 18014398509481984) {
+                    n /= 2;
+                    t /= 2;
+                }
+                let raw = n / t;
+                return Math.floor(raw * 10000) / 10000;
+            };
+        }
+
+        function recalculateFtHoFPlanner() {
             let currentTower = Game.Objects['Wizard tower'];
-            if (!currentTower || !currentTower.minigame || !Math.seedrandom) return "";
+            if (!currentTower || !currentTower.minigame || !Math.seedrandom) return;
             
             let M = currentTower.minigame;
             let spellsCount = M.spellsCastTotal;
+            if (spellsCount === Game.fthof_planner_last_count && Game.fthof_planner_final_html !== "") return;
+
+            Game.fthof_planner_last_count = spellsCount;
             let trueSeed = Game.seed || "unknown";
 
             let html = `
                 <div class="listing" style="padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);">
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v98.0.0)</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v99.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -41,8 +126,7 @@ Game.registerMod("fthof_planner_internal", {
                 let normalFailRng = Math.seedrandom(targetSeedStr, { global: false });
                 let seasonFailRng = Math.seedrandom(targetSeedStr, { global: false });
 
-                let localRngForSeed = Math.seedrandom(targetSeedStr, { global: false });
-                localRngForSeed();
+                let localRngForSeed = createTrueFtHoFMathRandom(targetSeedStr);
                 let rawSeedValue = localRngForSeed();
 
                 let normalSuccess = predictRawFtHoF(0, 0, normalRng);
@@ -71,9 +155,8 @@ Game.registerMod("fthof_planner_internal", {
                     </table>
                 </div>
             `;
-
-            return html;
-        });
+            Game.fthof_planner_final_html = html;
+        }
         function predictRawFtHoF(backfire, isSeasonMod, localRng) {
             localRng();
             let choice = '';
