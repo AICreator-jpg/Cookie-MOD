@@ -82,14 +82,13 @@ Game.registerMod("fthof_planner_internal", {
             
             let M = currentTower.minigame;
             let spellsCount = M.spellsCastTotal;
-
             if (spellsCount !== Game.fthof_planner_last_count || Game.fthof_planner_html_cache === "") {
                 Game.fthof_planner_last_count = spellsCount;
                 let trueSeed = Game.seed || "unknown";
 
                 let html = `
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v79.0.0)</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v81.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -157,7 +156,7 @@ Game.registerMod("fthof_planner_internal", {
             div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);';
             div.innerHTML = Game.fthof_planner_html_cache;
             menu.appendChild(div);
-        }
+
             function predictRawFtHoF(backfire, isSeasonMod, localRng) {
                 localRng();
                 let choice = '';
