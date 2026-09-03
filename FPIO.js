@@ -44,7 +44,7 @@ Game.registerMod("fthof_planner_internal", {
             return function() {
                 i_idx = (i_idx + 1) & 255;
                 j_idx = (j_idx + s[i_idx]) & 255;
-                x = s[i_idx]; s[i_idx] = s[j_idx]; s[j_idx] = x;
+                x = s[i_idx]; s[i_idx] = s[j_idx]; j_idx = (j_idx) & 255; s[j_idx] = x;
                 return s[(s[i_idx] + s[j_idx]) & 255];
             };
         }
@@ -62,7 +62,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v109.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v110.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -146,7 +146,6 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
         function predictRawFtHoF(backfire, isSeasonMod, localRng) {
-            localRng();
             let choice = '';
             if (!backfire) {
                 if ((localRng() / 256) < 0.15) {
