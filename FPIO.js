@@ -24,7 +24,7 @@ Game.registerMod("fthof_planner_internal", {
             };
         }
 
-        function createTrueFtHoFMathRandom(seedStr) {
+        function createTrueFtHoFMathRandomList(seedStr, count) {
             let width = 256;
             let chunks = 6;
             let key = [];
@@ -54,27 +54,34 @@ Game.registerMod("fthof_planner_internal", {
             let i_idx = 0;
             let j_idx = 0;
 
-            function drawSingleByte() {
-                i_idx = (i_idx + 1) % 256;
-                j_idx = (j_idx + s[i_idx]) % 256;
-                let t = s[i_idx]; s[i_idx] = s[j_idx]; j_idx = (j_idx) & 255; s[j_idx] = t;
-                return s[(s[i_idx] + s[j_idx]) % 256];
+            function g(count_bytes) {
+                let r = 0;
+                while (count_bytes--) {
+                    i_idx = (i_idx + 1) % 256;
+                    j_idx = (j_idx + s[i_idx]) % 256;
+                    let t = s[i_idx]; s[i_idx] = s[j_idx]; j_idx = (j_idx) & 255; s[j_idx] = t;
+                    r = r * 256 + s[(s[i_idx] + s[j_idx]) % 256];
+                }
+                return r;
             }
 
-            return function() {
-                let top = 0;
-                for (let m = 0; m < 6; m++) {
-                    top = top * width + drawSingleByte();
+            let result_list = [];
+            for (let k = 0; k < count; k++) {
+                let n = g(chunks);
+                let t = Math.pow(256, chunks);
+                let r = 0;
+                while (n < 9007199254740992) {
+                    n = (n + g(1)) * 256;
+                    t = t * 256;
                 }
-
-                let bot = 0;
-                for (let m = 0; m < 7; m++) {
-                    bot = bot * width + drawSingleByte();
+                while (n >= 18014398509481984) {
+                    n /= 2;
+                    t /= 2;
                 }
-
-                let raw = (top * 2097152 + bot) / 9007199254740992;
-                return Math.floor(raw * 10000) / 10000;
-            };
+                let raw = n / t;
+                result_list.push(Math.floor(raw * 10000) / 10000);
+            }
+            return result_list;
         }
 
         function calculateFtHoFPlannerData() {
@@ -90,7 +97,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v103.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v104.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -113,19 +120,18 @@ Game.registerMod("fthof_planner_internal", {
                 let futureCast = spellsCount + i;
                 let targetSeedStr = trueSeed + '/' + futureCast;
 
-                let normalRng = createTrueFtHoFMathRandom(targetSeedStr);
-                let seasonRng = createTrueFtHoFMathRandom(targetSeedStr);
-                let normalFailRng = createTrueFtHoFMathRandom(targetSeedStr);
-                let seasonFailRng = createTrueFtHoFMathRandom(targetSeedStr);
+                let normalRngList = createTrueFtHoFMathRandomList(targetSeedStr, 10);
+                let seasonRngList = createTrueFtHoFMathRandomList(targetSeedStr, 10);
+                let normalFailRngList = createTrueFtHoFMathRandomList(targetSeedStr, 10);
+                let seasonFailRngList = createTrueFtHoFMathRandom(targetSeedStr, 10);
 
-                let localRngForSeed = createTrueFtHoFMathRandom(targetSeedStr);
-                localRngForSeed();
-                let rawSeedValue = localRngForSeed();
+                let seedRngList = createTrueFtHoFMathRandomList(targetSeedStr, 2);
+                let rawSeedValue = seedRngList[1];
 
-                let normalSuccess = predictRawFtHoF(0, 0, normalRng);
-                let seasonSuccess = predictRawFtHoF(0, 1, seasonRng);
-                let normalFail = predictRawFtHoF(1, 0, normalFailRng);
-                let seasonFail = predictRawFtHoF(1, 1, seasonFailRng);
+                let normalSuccess = predictRawFtHoF(0, 0, normalRngList);
+                let seasonSuccess = predictRawFtHoF(0, 1, seasonRngList);
+                let normalFail = predictRawFtHoF(1, 0, normalFailRngList);
+                let seasonFail = predictRawFtHoF(1, 1, seasonFailRngList);
                 
                 let failCondition = getRawFailCondition(rawSeedValue);
 
@@ -173,21 +179,22 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = Game.fthof_planner_html_cache;
             menu.appendChild(div);
         }
-        function predictRawFtHoF(backfire, isSeasonMod, localRng) {
-            localRng();
+        function predictRawFtHoF(backfire, isSeasonMod, rngList) {
+            let ptr = 0;
+            ptr++; 
             let choice = '';
             if (!backfire) {
-                if (localRng() < 0.15) {
+                if (rngList[ptr++] < 0.15) {
                     choice = 'blab';
                 } else {
-                    let r = localRng();
+                    let r = rngList[ptr++];
                     let clickFrenzyChance = 0.15;
                     let bldgSpecChance = 0.1;
                     let stormChance = 0.1;
                     let lumpChance = 0.01;
                     if (r < clickFrenzyChance) {
                         choice = 'click frenzy';
-                        if (localRng() < 0.05) choice = 'blood frenzy';
+                        if (rngList[ptr++] < 0.05) choice = 'blood frenzy';
                     } else if (r < clickFrenzyChance + bldgSpecChance) {
                         choice = 'building special';
                     } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
@@ -197,24 +204,24 @@ Game.registerMod("fthof_planner_internal", {
                     } else {
                         let list = ['frenzy', 'multiply cookies'];
                         if (isSeasonMod) list.push('season_placeholder_cookie');
-                        choice = list[Math.floor(localRng() * list.length)];
+                        choice = list[Math.floor(rngList[ptr++] * list.length)];
                         if (choice === 'season_placeholder_cookie') {
                             choice = 'frenzy'; 
                         }
                     }
                 }
             } else {
-                if (localRng() < 0.1) {
+                if (rngList[ptr++] < 0.1) {
                     choice = 'blab';
                 } else {
-                    let r = localRng();
+                    let r = rngList[ptr++];
                     let bloodFrenzyChance = 0.1;
                     let cursedFingerChance = 0.1;
                     let stormChance = 0.1;
                     let lumpChance = 0.003;
                     if (r < bloodFrenzyChance) {
                         choice = 'blood frenzy';
-                        if (localRng() < 0.05) choice = 'click frenzy';
+                        if (rngList[ptr++] < 0.05) choice = 'click frenzy';
                     } else if (r < bloodFrenzyChance + cursedFingerChance) {
                         choice = 'cursed finger';
                     } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
@@ -224,7 +231,7 @@ Game.registerMod("fthof_planner_internal", {
                     } else {
                         let list = ['clot', 'ruins'];
                         if (isSeasonMod) list.push('season_placeholder_cookie');
-                        choice = list[Math.floor(localRng() * list.length)];
+                        choice = list[Math.floor(rngList[ptr++] * list.length)];
                         if (choice === 'season_placeholder_cookie') {
                             choice = 'clot'; 
                         }
