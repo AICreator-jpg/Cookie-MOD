@@ -39,30 +39,39 @@ Game.registerMod("fthof_planner_internal", {
             let M = currentTower.minigame;
             let spellsCount = M.spellsCastTotal;
 
+            let existing = document.getElementById('custom-internal-fthof');
+            if (!existing) {
+                existing = document.createElement('div');
+                existing.id = 'custom-internal-fthof';
+                existing.className = 'listing';
+                existing.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);';
+                menu.appendChild(existing);
+            }
+
             if (spellsCount !== Game.fthof_planner_last_count || Game.fthof_planner_html_cache === "") {
                 Game.fthof_planner_last_count = spellsCount;
                 let trueSeed = Game.seed || "unknown";
 
                 let html = `
                     <div style="text-align: center; margin-bottom: 10px;">
-                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v94.0.0)</h3>
+                        <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v95.0.0)</h3>
                         <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
-                    <thead>
-                        <tr style="border-bottom: 1px solid #555; color: #add8e6; text-align: center;">
-                            <th style="padding: 4px; text-align: left; width: 8%;">Spell #</th>
-                            <th style="padding: 4px; width: 8%;">総詠唱</th>
-                            <th style="padding: 4px; width: 14%;">Random Seed</th>
-                            <th style="padding: 4px; color: #6f6; width: 18%;">通常 成功</th>
-                            <th style="padding: 4px; color: #ffd700; width: 18%;">4季 成功</th>
-                            <th style="padding: 4px; color: #f55; width: 18%;">通常 失敗</th>
-                            <th style="padding: 4px; color: #ffb6c1; width: 18%;">4季 失敗</th>
-                            <th style="padding: 4px; color: #ff7f50; width: 6%;">GC数</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #555; color: #add8e6; text-align: center;">
+                                <th style="padding: 4px; text-align: left; width: 8%;">Spell #</th>
+                                <th style="padding: 4px; width: 8%;">総詠唱</th>
+                                <th style="padding: 4px; width: 14%;">Random Seed</th>
+                                <th style="padding: 4px; color: #6f6; width: 18%;">通常 成功</th>
+                                <th style="padding: 4px; color: #ffd700; width: 18%;">4季 成功</th>
+                                <th style="padding: 4px; color: #f55; width: 18%;">通常 失敗</th>
+                                <th style="padding: 4px; color: #ffb6c1; width: 18%;">4季 失敗</th>
+                                <th style="padding: 4px; color: #ff7f50; width: 6%;">GC数</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
 
                 for (let i = 1; i <= 10; i++) {
                     let futureCast = spellsCount + i;
@@ -104,17 +113,8 @@ Game.registerMod("fthof_planner_internal", {
                     </table>
                 `;
                 Game.fthof_planner_html_cache = html;
+                existing.innerHTML = Game.fthof_planner_html_cache;
             }
-
-            let existing = document.getElementById('custom-internal-fthof');
-            if (existing) existing.remove();
-
-            let div = document.createElement('div');
-            div.id = 'custom-internal-fthof';
-            div.className = 'listing';
-            div.style.cssText = 'padding: 15px; border-top: 1px dashed #666; margin-top: 15px; background: rgba(0,0,0,0.4);';
-            div.innerHTML = Game.fthof_planner_html_cache;
-            menu.appendChild(div);
             function predictRawFtHoF(backfire, isSeasonMod, localRng) {
                 localRng();
                 let choice = '';
