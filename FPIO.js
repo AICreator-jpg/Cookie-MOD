@@ -89,7 +89,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v106.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v108.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -117,8 +117,7 @@ Game.registerMod("fthof_planner_internal", {
                 let normalFailRngList = createTrueFtHoFMathRandomList(targetSeedStr, 10);
                 let seasonFailRngList = createTrueFtHoFMathRandomList(targetSeedStr, 10);
 
-                let seedRngList = createTrueFtHoFMathRandomList(targetSeedStr, 2);
-                let rawSeedValue = seedRngList[1];
+                let rawSeedValue = normalRngList[1];
 
                 let normalSuccess = predictRawFtHoF(0, 0, normalRngList);
                 let seasonSuccess = predictRawFtHoF(0, 1, seasonRngList);
@@ -171,75 +170,3 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = Game.fthof_planner_html_cache;
             menu.appendChild(div);
         }
-        function predictRawFtHoF(backfire, isSeasonMod, rngList) {
-            let ptr = 0;
-            ptr++; 
-            let choice = '';
-            if (!backfire) {
-                if (rngList[ptr++] < 0.15) {
-                    choice = 'blab';
-                } else {
-                    let r = rngList[ptr++];
-                    let clickFrenzyChance = 0.15;
-                    let bldgSpecChance = 0.1;
-                    let stormChance = 0.1;
-                    let lumpChance = 0.01;
-                    if (r < clickFrenzyChance) {
-                        choice = 'click frenzy';
-                        if (rngList[ptr++] < 0.05) choice = 'blood frenzy';
-                    } else if (r < clickFrenzyChance + bldgSpecChance) {
-                        choice = 'building special';
-                    } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
-                        choice = 'cookie storm';
-                    } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
-                        choice = 'sugar lump';
-                    } else {
-                        let list = ['frenzy', 'multiply cookies'];
-                        if (isSeasonMod) list.push('season_placeholder_cookie');
-                        choice = list[Math.floor(rngList[ptr++] * list.length)];
-                        if (choice === 'season_placeholder_cookie') {
-                            choice = 'frenzy'; 
-                        }
-                    }
-                }
-            } else {
-                if (rngList[ptr++] < 0.1) {
-                    choice = 'blab';
-                } else {
-                    let r = rngList[ptr++];
-                    let bloodFrenzyChance = 0.1;
-                    let cursedFingerChance = 0.1;
-                    let stormChance = 0.1;
-                    let lumpChance = 0.003;
-                    if (r < bloodFrenzyChance) {
-                        choice = 'blood frenzy';
-                        if (rngList[ptr++] < 0.05) choice = 'click frenzy';
-                    } else if (r < bloodFrenzyChance + cursedFingerChance) {
-                        choice = 'cursed finger';
-                    } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
-                        choice = 'cookie storm';
-                    } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance + lumpChance) {
-                        choice = 'sugar lump';
-                    } else {
-                        let list = ['clot', 'ruins'];
-                        if (isSeasonMod) list.push('season_placeholder_cookie');
-                        choice = list[Math.floor(rngList[ptr++] * list.length)];
-                        if (choice === 'season_placeholder_cookie') {
-                            choice = 'clot'; 
-                        }
-                    }
-                }
-            }
-            return loc(choice) || choice;
-        }
-
-        function getRawFailCondition(rawSeedValue) {
-            let neededGCs = Math.floor((1 - rawSeedValue) / 0.15);
-            if (neededGCs <= 0) return "0";
-            if (neededGCs > 6) return "6+";
-            return neededGCs.toString();
-        }
-    },
-    save: function() {},
-    load: function() {}
-});
