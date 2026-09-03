@@ -170,3 +170,75 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = Game.fthof_planner_html_cache;
             menu.appendChild(div);
         }
+        function predictRawFtHoF(backfire, isSeasonMod, rngList) {
+            let ptr = 0;
+            ptr++; 
+            let choice = '';
+            if (!backfire) {
+                if (rngList[ptr++] < 0.15) {
+                    choice = 'blab';
+                } else {
+                    let r = rngList[ptr++];
+                    let clickFrenzyChance = 0.15;
+                    let bldgSpecChance = 0.1;
+                    let stormChance = 0.1;
+                    let lumpChance = 0.01;
+                    if (r < clickFrenzyChance) {
+                        choice = 'click frenzy';
+                        if (rngList[ptr++] < 0.05) choice = 'blood frenzy';
+                    } else if (r < clickFrenzyChance + bldgSpecChance) {
+                        choice = 'building special';
+                    } else if (r < clickFrenzyChance + bldgSpecChance + stormChance) {
+                        choice = 'cookie storm';
+                    } else if (r < clickFrenzyChance + bldgSpecChance + stormChance + lumpChance) {
+                        choice = 'sugar lump';
+                    } else {
+                        let list = ['frenzy', 'multiply cookies'];
+                        if (isSeasonMod) list.push('season_placeholder_cookie');
+                        choice = list[Math.floor(rngList[ptr++] * list.length)];
+                        if (choice === 'season_placeholder_cookie') {
+                            choice = 'frenzy'; 
+                        }
+                    }
+                }
+            } else {
+                if (rngList[ptr++] < 0.1) {
+                    choice = 'blab';
+                } else {
+                    let r = rngList[ptr++];
+                    let bloodFrenzyChance = 0.1;
+                    let cursedFingerChance = 0.1;
+                    let stormChance = 0.1;
+                    let lumpChance = 0.003;
+                    if (r < bloodFrenzyChance) {
+                        choice = 'blood frenzy';
+                        if (rngList[ptr++] < 0.05) choice = 'click frenzy';
+                    } else if (r < bloodFrenzyChance + cursedFingerChance) {
+                        choice = 'cursed finger';
+                    } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
+                        choice = 'cookie storm';
+                    } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance + lumpChance) {
+                        choice = 'sugar lump';
+                    } else {
+                        let list = ['clot', 'ruins'];
+                        if (isSeasonMod) list.push('season_placeholder_cookie');
+                        choice = list[Math.floor(rngList[ptr++] * list.length)];
+                        if (choice === 'season_placeholder_cookie') {
+                            choice = 'clot'; 
+                        }
+                    }
+                }
+            }
+            return loc(choice) || choice;
+        }
+
+        function getRawFailCondition(rawSeedValue) {
+            let neededGCs = Math.floor((1 - rawSeedValue) / 0.15);
+            if (neededGCs <= 0) return "0";
+            if (neededGCs > 6) return "6+";
+            return neededGCs.toString();
+        }
+    },
+    save: function() {},
+    load: function() {}
+});
