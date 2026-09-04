@@ -35,77 +35,61 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function createTrueFtHoFMathRandom(seedStr) {
-            var Math_obj = Math;
-            var width_val = 256;
-            var chunks_val = 6;
-            var digits_val = 52;
+            var width = 256, chunks = 6, digits = 52;
             
-            function k_func(a) {
-                var b, c = a.length, e = this, f = 0, g = (e.i = e.j = 0), h = (e.S = []);
-                for (c || (a = [c++]); width_val > f; ) h[f] = f++;
-                for (f = 0; width_val > f; f++) {
-                    h[f] = h[g = width_val - 1 & (g + a[f % c] + (b = h[f]))];
+            function Arc4(a) {
+                var b, c = a.length, f = 0, g = this.i = this.j = 0, h = this.S = [];
+                for (c || (a = [c++]); width > f; ) { h[f] = f++; }
+                for (f = 0; width > f; f++) {
+                    h[f] = h[g = width - 1 & (g + a[f % c] + (b = h[f]))];
                     h[g] = b;
                 }
-                (e.g = function(a) {
-                    for (var b, c = 0, f = e.i, g = e.j, h = e.S; a--; ) {
-                        f = width_val - 1 & (f + 1);
-                        g = width_val - 1 & (g + h[f]);
+                this.g = function (a) {
+                    var b, c = 0, f = this.i, g = this.j, h = this.S;
+                    while (a--) {
+                        f = width - 1 & (f + 1);
+                        g = width - 1 & (g + h[f]);
                         b = h[f]; h[f] = h[g]; h[g] = b;
-                        c = c * width_val + h[width_val - 1 & (h[f] + h[g])];
+                        c = c * width + h[width - 1 & (h[f] + h[g])];
                     }
-                    return (e.i = f), (e.j = g), c;
-                })(width_val);
+                    this.i = f; this.j = g;
+                    return c;
+                };
             }
 
-            function l_func(a, b) {
-                var e, c = [], d = (typeof a);
-                if (b && 'o' == d) {
-                    for (e in a) {
-                        try {
-                            c.push(l_func(a[e], b - 1));
-                        } catch (f) {}
-                    }
+            function mixkey(a, b) {
+                var c = a + '', d = 0, e = 0;
+                while (c.length > e) {
+                    b[width - 1 & e] = width - 1 & ((d ^= b[width - 1 & e] * 19) + c.charCodeAt(e++));
                 }
-                return c.length ? c : 's' == d ? a : a + '\0';
+                return tostring(b);
             }
 
-            function m_func(a, b) {
-                for (var d = 0, c = a + '', e = 0; c.length > e; ) {
-                    b[width_val - 1 & e] = width_val - 1 & ((d ^= 19 * b[width_val - 1 & e]) + c.charCodeAt(e++));
-                }
-                return o_func(b);
-            }
-
-            function o_func(a) {
+            function tostring(a) {
                 return String.fromCharCode.apply(0, a);
             }
 
-            var g_val = Math_obj.pow(width_val, chunks_val),
-                h_val = Math_obj.pow(2, digits_val),
-                i_val = 2 * h_val,
-                j_val = chunks_val - 1;
+            var startdenom = Math.pow(width, chunks),
+                significance = Math.pow(2, digits),
+                overflow = significance * 2;
 
-            var j_arr = [],
-                p_val = m_func(l_func([seedStr], 3), j_arr),
-                q_obj = new k_func(j_arr);
+            var key = [],
+                q = new Arc4(mixkey(seedStr, key));
 
-            var prng_func = function() {
-                var a = q_obj.g(chunks_val), b = g_val, c = 0;
-                for (; h_val > a; ) {
-                    a = (a + q_obj.g(1)) * width_val;
-                    b *= width_val;
-                    c = q_obj.g(1);
+            return function () {
+                var a = q.g(chunks), b = startdenom, c = 0;
+                while (significance > a) {
+                    a = (a + q.g(1)) * width;
+                    b *= width;
+                    c = q.g(1);
                 }
-                for (; a >= i_val; ) {
+                while (a >= overflow) {
                     a /= 2;
                     b /= 2;
                     c >>>= 1;
                 }
                 return (a + c) / b;
             };
-
-            return prng_func;
         }
 
         function calculateFtHoFPlannerData() {
@@ -121,7 +105,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v123.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v124.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
