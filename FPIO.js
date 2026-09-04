@@ -44,8 +44,8 @@ Game.registerMod("fthof_planner_internal", {
                 var b, c = a.length, e = this, f = 0, g = (e.i = e.j = 0), h = (e.S = []);
                 for (c || (a = [c++]); width_val > f; ) h[f] = f++;
                 for (f = 0; width_val > f; f++) {
-                    h[f] = h[(j = width_val - 1 & (j + h[f] + a[f % c] + (b[f % b.length] || 0)))];
-                    h[j] = b;
+                    h[f] = h[g = width_val - 1 & (g + a[f % c] + (b = h[f]))];
+                    h[g] = b;
                 }
                 (e.g = function(a) {
                     for (var b, c = 0, f = e.i, g = e.j, h = e.S; a--; ) {
@@ -71,18 +71,10 @@ Game.registerMod("fthof_planner_internal", {
             }
 
             function m_func(a, b) {
-                for (var d, c = a + '', e = 0; c.length > e; ) {
+                for (var d = 0, c = a + '', e = 0; c.length > e; ) {
                     b[width_val - 1 & e] = width_val - 1 & ((d ^= 19 * b[width_val - 1 & e]) + c.charCodeAt(e++));
                 }
                 return o_func(b);
-            }
-
-            function n_func(c) {
-                try {
-                    return (a.crypto.getRandomValues((c = new Uint8Array(d))), o_func(c));
-                } catch (e) {
-                    return [+new Date(), a, a.navigator.plugins, a.screen, o_func(b)];
-                }
             }
 
             function o_func(a) {
@@ -99,7 +91,8 @@ Game.registerMod("fthof_planner_internal", {
                 q_obj = new k_func(j_arr);
 
             var prng_func = function() {
-                for (var a = q_obj.g(chunks_val), b = g_val, c = 0; h_val > a; ) {
+                var a = q_obj.g(chunks_val), b = g_val, c = 0;
+                for (; h_val > a; ) {
                     a = (a + q_obj.g(1)) * width_val;
                     b *= width_val;
                     c = q_obj.g(1);
@@ -128,7 +121,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v122.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v123.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
