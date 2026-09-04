@@ -34,64 +34,92 @@ Game.registerMod("fthof_planner_internal", {
             }, 10);
         }
 
-        function createTrueFtHoFMathRandom(seedStr) {
-            var width = 256, chunks = 6, digits = 52;
-            
-            function Arc4(a) {
-                var b, c = a.length, f = 0, g = this.i = this.j = 0, h = this.S = [];
-                for (c || (a = [c++]); width > f; ) { h[f] = f++; }
-                for (f = 0; width > f; f++) {
-                    h[f] = h[g = width - 1 & (g + a[f % c] + (b = h[f]))];
-                    h[g] = b;
-                }
-                this.g = function (a) {
-                    var b, c = 0, f = this.i, g = this.j, h = this.S;
-                    while (a--) {
-                        f = width - 1 & (f + 1);
-                        g = width - 1 & (g + h[f]);
-                        b = h[f]; h[f] = h[g]; h[g] = b;
-                        c = c * width + h[width - 1 & (h[f] + h[g])];
-                    }
-                    this.i = f; this.j = g;
-                    return c;
-                };
-            }
+        (function (a, b, c, d, e, f) {
+  function k(a) {
+    var b,
+      c = a.length,
+      e = this,
+      f = 0,
+      g = (e.i = e.j = 0),
+      h = (e.S = []);
+    for (c || (a = [c++]); d > f; ) h[f] = f++;
+    for (f = 0; d > f; f++)
+      ((h[f] = h[(g = j & (g + a[f % c] + (b = h[f])))]), (h[g] = b));
+    (e.g = function (a) {
+      for (var b, c = 0, f = e.i, g = e.j, h = e.S; a--; )
+        ((b = h[(f = j & (f + 1))]),
+          (c = c * d + h[j & ((h[f] = h[(g = j & (g + b))]) + (h[g] = b))]));
+      return ((e.i = f), (e.j = g), c);
+    })(d);
+  }
 
-            function mixkey(a, b) {
-                for (var d = 0, c = a + '', e = 0; c.length > e; ) {
-                    b[width - 1 & e] = width - 1 & ((d ^= 19 * (b[width - 1 & e] || 0)) + c.charCodeAt(e++));
-                }
-                return tostring(b);
-            }
+  function l(a, b) {
+    var e,
+      c = [],
+      d = (typeof a)[0];
+    if (b && 'o' == d)
+      for (e in a)
+        try {
+          c.push(l(a[e], b - 1));
+        } catch (f) {}
+    return (
+      c.length ? c
+      : 's' == d ? a
+      : a + '\0'
+    );
+  }
 
-            function tostring(a) {
-                return String.fromCharCode.apply(0, a);
-            }
 
-            var startdenom = Math.pow(width, chunks),
-                significance = Math.pow(2, digits),
-                overflow = significance * 2;
+  function m(a, b) {
+    for (var d, c = a + '', e = 0; c.length > e; )
+      b[j & e] = j & ((d ^= 19 * b[j & e]) + c.charCodeAt(e++));
+    return o(b);
+  }
 
-            var key = [],
-                q = new Arc4(mixkey(seedStr, key));
+  function n(c) {
+    try {
+      return (a.crypto.getRandomValues((c = new Uint8Array(d))), o(c));
+    } catch (e) {
+      return [+new Date(), a, a.navigator.plugins, a.screen, o(b)];
+    }
+  }
 
-            return function () {
-                var a = q.g(chunks), b = startdenom, c = 0;
-                while (significance > a) {
-                    a = (a + q.g(1)) * width;
-                    b *= width;
-                    c = q.g(1);
-                }
-                while (a >= overflow) {
-                    a /= 2;
-                    b /= 2;
-                    c >>>= 1;
-                }
-                return (a + c) / b;
-            };
-        }
+  function o(a) {
+    return String.fromCharCode.apply(0, a);
+  }
 
-        function calculateFtHoFPlannerData() {
+  var g = c.pow(d, e),
+    h = c.pow(2, f),
+    i = 2 * h,
+    j = d - 1;
+  ((c.seedrandom = function (a, f) {
+    var j = [],
+      p = m(
+        l(
+          f ? [a, o(b)]
+          : 0 in arguments ? a
+          : n(),
+          3
+        ),
+        j
+      ),
+      q = new k(j);
+    return (
+      m(o(q.S), b),
+      (c.random = function () {
+        for (var a = q.g(e), b = g, c = 0; h > a; )
+          ((a = (a + c) * d), (b *= d), (c = q.g(1)));
+        for (; a >= i; ) ((a /= 2), (b /= 2), (c >>>= 1));
+        return (a + c) / b;
+      }),
+      p
+    );
+  }),
+    m(c.random(), b));
+})(this, [], Math, 256, 6, 52);
+        
+
+       } function calculateFtHoFPlannerData() {
             let currentTower = Game.Objects['Wizard tower'];
             if (!currentTower || !currentTower.minigame) return;
             
@@ -104,7 +132,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v127.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v126.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -225,7 +253,7 @@ Game.registerMod("fthof_planner_internal", {
                     if (r < bloodFrenzyChance) {
                         choice = 'blood frenzy';
                         if (localRng() < 0.05) choice = 'click frenzy';
-                    } else if (r < bloodFrenzyChance + cursedFingerFinger) {
+                    } else if (r < bloodFrenzyChance + cursedFingerChance) {
                         choice = 'cursed finger';
                     } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
                         choice = 'cookie storm';
