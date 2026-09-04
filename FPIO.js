@@ -58,10 +58,8 @@ Game.registerMod("fthof_planner_internal", {
             }
 
             function mixkey(a, b) {
-                var c = a + '', d = 0, e = 0;
-                while (c.length > e) {
-                    var idx = width - 1 & e;
-                    b[idx] = width - 1 & ((d ^= (b[idx] || 0) * 19) + c.charCodeAt(e++));
+                for (var d = 0, c = a + '', e = 0; c.length > e; ) {
+                    b[width - 1 & e] = width - 1 & ((d ^= 19 * (b[width - 1 & e] || 0)) + c.charCodeAt(e++));
                 }
                 return tostring(b);
             }
@@ -106,7 +104,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v126.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v127.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -227,7 +225,7 @@ Game.registerMod("fthof_planner_internal", {
                     if (r < bloodFrenzyChance) {
                         choice = 'blood frenzy';
                         if (localRng() < 0.05) choice = 'click frenzy';
-                    } else if (r < bloodFrenzyChance + cursedFingerChance) {
+                    } else if (r < bloodFrenzyChance + cursedFingerFinger) {
                         choice = 'cursed finger';
                     } else if (r < bloodFrenzyChance + cursedFingerChance + stormChance) {
                         choice = 'cookie storm';
