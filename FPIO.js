@@ -137,7 +137,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v140.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v141.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -176,7 +176,7 @@ Game.registerMod("fthof_planner_internal", {
                 let failCondition = getRawFailCondition(rawSeedValue);
 
                 html += `
-                    <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
+                    <tr style="border-bottom: 3px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
                         <td style="padding: 6px; text-align: left; color: #aaa;">+${i}</td>
                         <td style="padding: 6px; font-weight: bold;">${futureCast}</td>
                         <td style="padding: 6px; font-family: monospace; color: #add8e6;">${rawSeedValue.toFixed(4)}</td>
@@ -234,6 +234,9 @@ Game.registerMod("fthof_planner_internal", {
             if (localRng() < 0.10) {
                 list.push('cookie storm');
             }
+            if (isSeasonMod) {
+                list.push('season_placeholder_cookie');
+            }
             if (localRng() < 0.0001) {
                 list.push('sugar lump');
             }
@@ -243,6 +246,15 @@ Game.registerMod("fthof_planner_internal", {
             }
             
             let choice = list[Math.floor(localRng() * list.length)];
+            
+            if (choice === 'multiply cookies') return 'Lucky';
+            if (choice === 'frenzy') return 'Frenzy';
+            if (choice === 'click frenzy') return 'Click Frenzy';
+            if (choice === 'building special') return 'Building Special';
+            if (choice === 'cookie storm') return 'Cookie Storm Drop';
+            if (choice === 'sugar lump') return 'Sugar Lump';
+            if (choice === 'blab') return 'Blab';
+            if (choice === 'season_placeholder_cookie') return 'Cookie Storm Drop';
             return choice;
         }
 
@@ -255,6 +267,9 @@ Game.registerMod("fthof_planner_internal", {
             if (localRng() < 0.10) {
                 list.push('blood frenzy');
             }
+            if (isSeasonMod) {
+                list.push('season_placeholder_cookie');
+            }
             if (localRng() < 0.003) {
                 list.push('sugar lump');
             }
@@ -264,6 +279,14 @@ Game.registerMod("fthof_planner_internal", {
             }
             
             let choice = list[Math.floor(localRng() * list.length)];
+            
+            if (choice === 'clot') return 'Clot';
+            if (choice === 'ruins') return 'Ruin';
+            if (choice === 'cursed finger') return 'Cursed Finger';
+            if (choice === 'blood frenzy') return 'Elder Frenzy';
+            if (choice === 'sugar lump') return 'Sugar Lump';
+            if (choice === 'blab') return 'Blab';
+            if (choice === 'season_placeholder_cookie') return 'Ruin';
             return choice;
         }
 
