@@ -35,8 +35,8 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function createTrueFtHoFMathRandom(seedStr) {
-            var localMath = Math;
-            var outRandomFunc = null;
+            let mockMath = Object.create(window.Math);
+            let Math = mockMath;
 
             (function (a, b, c, d, e, f) {
               function k(a) {
@@ -119,10 +119,10 @@ Game.registerMod("fthof_planner_internal", {
                 );
               }),
                 m(c.random(), b));
-            })(this, [], localMath, 256, 6, 52);
+            })(this, [], Math, 256, 6, 52);
 
-            localMath.seedrandom(seedStr);
-            return localMath.random;
+            Math.seedrandom(seedStr);
+            return Math.random;
         }
 
         function calculateFtHoFPlannerData() {
@@ -138,7 +138,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v129.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v130.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -220,7 +220,7 @@ Game.registerMod("fthof_planner_internal", {
         }
         function predictRawFtHoF(backfire, isSeasonMod, localRng) {
             localRng();
-            let choice = '';
+            let choice = choice = '';
             if (!backfire) {
                 if (localRng() < 0.15) {
                     choice = 'blab';
