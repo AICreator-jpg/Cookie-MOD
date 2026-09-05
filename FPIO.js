@@ -137,7 +137,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v143.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v144.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -160,15 +160,14 @@ Game.registerMod("fthof_planner_internal", {
                 let futureCast = spellsCount + i;
                 let targetSeedStr = trueSeed + '/' + futureCast;
 
-                let rowRng = createTrueFtHoFMathRandom(targetSeedStr);
+                let localRngForSeed = createTrueFtHoFMathRandom(targetSeedStr);
+                localRngForSeed();
+                let rawSeedValue = localRngForSeed();
 
-                rowRng(); 
-                let rawSeedValue = rowRng();
-
-                let normalSuccess = predictSuccessFtHoF(0, hasDragonflight, rowRng);
-                let seasonSuccess = predictSuccessFtHoF(1, hasDragonflight, rowRng);
-                let normalFail = predictFailFtHoF(0, rowRng);
-                let seasonFail = predictFailFtHoF(1, rowRng);
+                let normalSuccess = predictSuccessFtHoF(0, hasDragonflight, createTrueFtHoFMathRandom(targetSeedStr));
+                let seasonSuccess = predictSuccessFtHoF(1, hasDragonflight, createTrueFtHoFMathRandom(targetSeedStr));
+                let normalFail = predictFailFtHoF(0, createTrueFtHoFMathRandom(targetSeedStr));
+                let seasonFail = predictFailFtHoF(1, createTrueFtHoFMathRandom(targetSeedStr));
                 
                 let failCondition = getRawFailCondition(rawSeedValue);
 
@@ -214,6 +213,8 @@ Game.registerMod("fthof_planner_internal", {
             menu.appendChild(div);
         }
         function predictSuccessFtHoF(isSeasonMod, hasDragonflight, localRng) {
+            localRng();
+            
             let list = ['frenzy', 'multiply cookies'];
             
             if (localRng() < 0.10) {
@@ -256,6 +257,8 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function predictFailFtHoF(isSeasonMod, localRng) {
+            localRng();
+            
             let list = ['clot', 'ruins'];
             
             if (localRng() < 0.10) {
