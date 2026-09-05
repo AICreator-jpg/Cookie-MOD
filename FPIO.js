@@ -137,7 +137,7 @@ Game.registerMod("fthof_planner_internal", {
 
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v144.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v145.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -160,16 +160,20 @@ Game.registerMod("fthof_planner_internal", {
                 let futureCast = spellsCount + i;
                 let targetSeedStr = trueSeed + '/' + futureCast;
 
-                let localRngForSeed = createTrueFtHoFMathRandom(targetSeedStr);
-                localRngForSeed();
-                let rawSeedValue = localRngForSeed();
+                let localRng = createTrueFtHoFMathRandom(targetSeedStr);
+                let allSpells = new Array(10);
+                for (let i1 = 0; i1 < 10; i1++) {
+                    allSpells[i1] = localRng();
+                }
 
-                let normalSuccess = predictSuccessFtHoF(0, hasDragonflight, createTrueFtHoFMathRandom(targetSeedStr));
-                let seasonSuccess = predictSuccessFtHoF(1, hasDragonflight, createTrueFtHoFMathRandom(targetSeedStr));
-                let normalFail = predictFailFtHoF(0, createTrueFtHoFMathRandom(targetSeedStr));
-                let seasonFail = predictFailFtHoF(1, createTrueFtHoFMathRandom(targetSeedStr));
+                let rawSeedValue = allSpells[1];
+
+                let normalSuccess = predictSuccessFtHoF(0, hasDragonflight, [...allSpells]);
+                let seasonSuccess = predictSuccessFtHoF(1, hasDragonflight, [...allSpells]);
+                let normalFail = predictFailFtHoF(0, [...allSpells]);
+                let seasonFail = predictFailFtHoF(1, [...allSpells]);
                 
-                let failCondition = getRawFailCondition(rawSeedValue);
+                let failCondition = getRawFailCondition(allSpells[0]);
 
                 html += `
                     <tr style="border-bottom: 1px solid #333; text-align: center; background: ${i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent'};">
@@ -212,39 +216,40 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = Game.fthof_planner_html_cache;
             menu.appendChild(div);
         }
-        
-        function predictSuccessFtHoF(isSeasonMod, hasDragonflight, localRng) {
-            localRng();
+
+        function predictSuccessFtHoF(isSeasonMod, hasDragonflight, allSpells) {
+            let ptr = 0;
+            ptr++; 
             
             let list = ['frenzy', 'multiply cookies'];
             
-            if (localRng() < 0.10) {
+            if (allSpells[ptr++] < 0.10) {
                 list.push('cookie storm');
             }
-            if (localRng() < 0.10) {
+            if (allSpells[ptr++] < 0.10) {
                 list.push('blab');
             }
             if (!hasDragonflight) {
                 list.push('click frenzy');
             }
-            if (localRng() < 0.25) {
+            if (allSpells[ptr++] < 0.25) {
                 list.push('building special');
             }
-            if (localRng() < 0.10) {
+            if (allSpells[ptr++] < 0.10) {
                 list.push('cookie storm');
             }
             if (isSeasonMod) {
                 list.push('season_placeholder_cookie');
             }
-            if (localRng() < 0.0001) {
+            if (allSpells[ptr++] < 0.0001) {
                 list.push('sugar lump');
             }
             
-            if (localRng() < 0.15) {
+            if (allSpells[ptr++] < 0.15) {
                 list = ['cookie storm'];
             }
             
-            let choice = list[Math.floor(localRng() * list.length)];
+            let choice = list[Math.floor(allSpells[ptr++] * list.length)];
             
             if (choice === 'multiply cookies') return 'Lucky';
             if (choice === 'frenzy') return 'Frenzy';
@@ -257,29 +262,30 @@ Game.registerMod("fthof_planner_internal", {
             return choice;
         }
 
-        function predictFailFtHoF(isSeasonMod, localRng) {
-            localRng();
+        function predictFailFtHoF(isSeasonMod, allSpells) {
+            let ptr = 0;
+            ptr++; 
             
             let list = ['clot', 'ruins'];
             
-            if (localRng() < 0.10) {
+            if (allSpells[ptr++] < 0.10) {
                 list.push('cursed finger');
             }
-            if (localRng() < 0.10) {
+            if (allSpells[ptr++] < 0.10) {
                 list.push('blood frenzy');
             }
             if (isSeasonMod) {
                 list.push('season_placeholder_cookie');
             }
-            if (localRng() < 0.003) {
+            if (allSpells[ptr++] < 0.003) {
                 list.push('sugar lump');
             }
             
-            if (localRng() < 0.10) {
+            if (allSpells[ptr++] < 0.10) {
                 list = ['blab'];
             }
             
-            let choice = list[Math.floor(localRng() * list.length)];
+            let choice = list[Math.floor(allSpells[ptr++] * list.length)];
             
             if (choice === 'clot') return 'Clot';
             if (choice === 'ruins') return 'Ruin';
