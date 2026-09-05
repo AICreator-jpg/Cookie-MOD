@@ -133,9 +133,11 @@ Game.registerMod("fthof_planner_internal", {
             Game.fthof_planner_last_count = spellsCount;
             let trueSeed = Game.seed || "unknown";
 
+            let hasDragonflight = (Game.dragonAura === 11 || Game.dragonAura2 === 11);
+
             let html = `
                 <div style="text-align: center; margin-bottom: 10px;">
-                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v133.0.0)</h3>
+                    <h3 style="color: #ecc45e; font-size: 18px; margin: 0;">FtHoF プランナー (v139.0.0)</h3>
                     <p style="font-size: 11px; color: #ccc; margin: 5px 0;">アセンド固定シード: <b style="color:#ecc45e; font-family:monospace; font-size:13px;">${trueSeed}</b> | 現在の総詠唱回数: <b style="color:#fff; font-size:14px;">${spellsCount}</b> 回</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
@@ -166,10 +168,10 @@ Game.registerMod("fthof_planner_internal", {
                 let localRngForSeed = createTrueFtHoFMathRandom(targetSeedStr);
                 let rawSeedValue = localRngForSeed();
 
-                let normalSuccess = predictSuccessFtHoF(0, normalRng);
-                let seasonSuccess = predictSuccessFtHoF(1, seasonRng);
-                let normalFail = predictFailFtHoF(0, normalFailRng);
-                let seasonFail = predictFailFtHoF(1, seasonFailRng);
+                let normalSuccess = predictSuccessFtHoF(hasDragonflight, normalRng);
+                let seasonSuccess = predictSuccessFtHoF(hasDragonflight, seasonRng);
+                let normalFail = predictFailFtHoF(normalFailRng);
+                let seasonFail = predictFailFtHoF(seasonFailRng);
                 
                 let failCondition = getRawFailCondition(rawSeedValue);
 
@@ -214,58 +216,54 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = Game.fthof_planner_html_cache;
             menu.appendChild(div);
         }
-        function predictSuccessFtHoF(isSeasonMod, localRng) {
-            let rollFailCheck = localRng(); 
-            
-            if (rollFailCheck < 0.15) {
-                return loc('blab');
-            }
-            
+        function predictSuccessFtHoF(hasDragonflight, localRng) {
             let list = ['frenzy', 'multiply cookies'];
-            list.push('click frenzy');
-            list.push('cookie storm', 'cookie storm', 'cookie storm', 'blab', 'blab', 'blab');
             
-            let totalBuildings = 0;
-            for (let name in Game.Objects) {
-                totalBuildings += Game.Objects[name].amount;
+            if (localRng() < 0.10) {
+                list.push('cookie storm');
             }
-            if (totalBuildings >= 10) {
+            if (localRng() < 0.10) {
+                list.push('blab');
+            }
+            if (!hasDragonflight) {
+                list.push('click frenzy');
+            }
+            if (localRng() < 0.25) {
                 list.push('building special');
             }
-            
-            if (isSeasonMod) {
-                list.push('season_placeholder_cookie');
+            if (localRng() < 0.10) {
+                list.push('cookie storm');
+            }
+            if (localRng() < 0.0001) {
+                list.push('sugar lump');
             }
             
-            list.push('sugar lump');
+            if (localRng() < 0.15) {
+                list = ['cookie storm'];
+            }
             
             let choice = list[Math.floor(localRng() * list.length)];
-            if (choice === 'season_placeholder_cookie') {
-                choice = 'frenzy';
-            }
             return loc(choice) || choice;
         }
 
-        function predictFailFtHoF(isSeasonMod, localRng) {
-            let rollFailCheck = localRng(); 
-            
-            if (rollFailCheck < 0.10) {
-                return loc('blab');
-            }
-            
+        function predictFailFtHoF(localRng) {
             let list = ['clot', 'ruins'];
-            list.push('cursed finger', 'cursed finger', 'cursed finger', 'blood frenzy', 'blood frenzy', 'blood frenzy');
             
-            if (isSeasonMod) {
-                list.push('season_placeholder_cookie');
+            if (localRng() < 0.10) {
+                list.push('cursed finger');
+            }
+            if (localRng() < 0.10) {
+                list.push('blood frenzy');
+            }
+            if (localRng() < 0.003) {
+                list.push('sugar lump');
             }
             
-            list.push('sugar lump');
+            if (localRng() < 0.10) {
+                list = ['blab'];
+            }
             
             let choice = list[Math.floor(localRng() * list.length)];
-            if (choice === 'season_placeholder_cookie') {
-                choice = 'clot';
-            }
             return loc(choice) || choice;
         }
 
