@@ -1,15 +1,14 @@
 Game.registerMod("fthof_planner_internal", {
     init: function() {
-        var VERSION = "1.2.0";
+        var VERSION = "1.2.1";
         var GAME_VERSION = "2.058";
         var FORECAST = 10;
 
         Game.fthof_planner_html_cache = "";
-        Game.fthof_planner_last_count = -1;
         Game.fthof_planner_last_state = "";
 
         var timer = null;
-        var wrappedM = null;
+        var hookedM = null;
 
         function getM() {
             var tower = Game.Objects && Game.Objects["Wizard tower"];
@@ -30,35 +29,30 @@ Game.registerMod("fthof_planner_internal", {
                 .replace(/'/g, "&#39;");
         }
 
-        function rng(seed) {
-            if (typeof Math.seedrandom !== "function") {
-                throw new Error("Math.seedrandom が見つかりません");
+        function withSeed(seed, fn) {
+            var oldRandom = Math.random;
+            var result;
+
+            try {
+                Math.seedrandom(seed);
+                result = fn();
+            } finally {
+                Math.random = oldRandom;
             }
-            return new Math.seedrandom(seed);
+
+            return result;
         }
 
-        function choose(a, r) {
-            return a[Math.floor(r() * a.length)];
+        function choose(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
         }
 
-        function seasonal() {
+        function isSeason() {
             return Game.season === "easter" ||
                    Game.season === "valentines";
         }
 
-        function chime() {
-            var g = Game.shimmerTypes &&
-                    Game.shimmerTypes["golden"];
-
-            return !!(
-                g &&
-                !g.spawned &&
-                Game.chimeType == 1 &&
-                Game.ascensionMode != 1
-            );
-        }
-
-        function failChance() {
+        function getFailChance() {
             var M = getM();
             var spell = getSpell();
 
@@ -71,53 +65,49 @@ Game.registerMod("fthof_planner_internal", {
 
                 if (Game.hasBuff("Magic adept")) f *= 0.1;
                 if (Game.hasBuff("Magic inept")) f *= 5;
+                if (Game.hasBuff("Diminish ineptitude")) f *= 0.1;
 
                 if (Game.auraMult) {
-                    f *= 1 + 0.1 * Game.auraMult("Supreme Intellect");
+                    f += 0.1 * Game.auraMult("Supreme Intellect");
                 }
 
                 var g = Game.shimmerTypes &&
                         Game.shimmerTypes["golden"];
 
-                if (g) f += 0.15 * g.n;
+                if (g) {
+                    f += 0.15 * g.n;
+                }
 
-                return f;
+                return Math.max(0, f);
             }
         }
 
-        function simulate(seed, forceSeason) {
-            var r = rng(seed);
-            var backfireRoll = r();
-            var fc = failChance();
-            var success = backfireRoll < 1 - fc;
+        function simulate(seed, seasonMode) {
+            return withSeed(seed, function() {
+                var failChance = getFailChance();
+                var roll = Math.random();
+                var success = roll < 1 - failChance;
 
-            var offset = 2;
+                Math.random();
+                Math.random();
 
-            if (forceSeason || seasonal()) {
-                offset++;
-            }
+                if (seasonMode) {
+                    Math.random();
+                }
 
-            if (chime()) {
-                offset++;
-            }
+                var result = success
+                    ? simulateSuccess()
+                    : simulateFail();
 
-            for (var i = 0; i < offset; i++) {
-                r();
-            }
-
-            var result = success
-                ? successResult(r)
-                : failResult(r);
-
-            return {
-                success: success,
-                roll: backfireRoll,
-                failChance: fc,
-                result: result
-            };
+                return {
+                    success: success,
+                    roll: roll,
+                    result: result
+                };
+            });
         }
 
-        function successResult(r) {
+        function simulateSuccess() {
             var choices = [
                 "frenzy",
                 "multiply cookies"
@@ -127,7 +117,7 @@ Game.registerMod("fthof_planner_internal", {
                 choices.push("click frenzy");
             }
 
-            if (r() < 0.1) {
+            if (Math.random() < 0.1) {
                 choices.push(
                     "cookie storm",
                     "cookie storm",
@@ -137,65 +127,54 @@ Game.registerMod("fthof_planner_internal", {
 
             if (
                 Game.BuildingsOwned >= 10 &&
-                r() < 0.25
+                Math.random() < 0.25
             ) {
                 choices.push("building special");
             }
 
-            if (r() < 0.15) {
+            if (Math.random() < 0.15) {
                 choices = ["cookie storm drop"];
             }
 
-            if (r() < 0.0001) {
+            if (Math.random() < 0.0001) {
                 choices.push("free sugar lump");
             }
 
-            var choice = choose(choices, r);
-            var size = null;
+            var result = choose(choices);
 
-            if (choice === "cookie storm drop") {
-                size = r() * 0.75 + 0.25;
+            if (result === "cookie storm drop") {
+                Math.random();
             }
 
-            return {
-                key: choice,
-                name: format(choice),
-                size: size
-            };
+            return format(result);
         }
 
-        function failResult(r) {
+        function simulateFail() {
             var choices = [
                 "clot",
                 "ruin cookies"
             ];
 
-            if (r() < 0.1) {
+            if (Math.random() < 0.1) {
                 choices.push(
                     "cursed finger",
                     "blood frenzy"
                 );
             }
 
-            if (r() < 0.003) {
+            if (Math.random() < 0.003) {
                 choices.push("free sugar lump");
             }
 
-            if (r() < 0.1) {
+            if (Math.random() < 0.1) {
                 choices = ["blab"];
             }
 
-            var choice = choose(choices, r);
-
-            return {
-                key: choice,
-                name: format(choice),
-                size: null
-            };
+            return format(choose(choices));
         }
 
-        function format(c) {
-            switch (c) {
+        function format(result) {
+            switch (result) {
                 case "frenzy":
                     return "Frenzy";
                 case "multiply cookies":
@@ -221,7 +200,7 @@ Game.registerMod("fthof_planner_internal", {
                 case "blood frenzy":
                     return "Elder Frenzy";
                 default:
-                    return c;
+                    return result;
             }
         }
 
@@ -231,14 +210,15 @@ Game.registerMod("fthof_planner_internal", {
 
             if (!g) return "-";
 
-            var current = g.n || 0;
-            var currentFail = failChance();
-            var base = currentFail - current * 0.15;
+            var currentGC = g.n || 0;
+            var currentFail = getFailChance();
+            var base = currentFail - currentGC * 0.15;
 
             for (var i = 0; i <= 20; i++) {
-                var f = base + (current + i) * 0.15;
+                var chance =
+                    base + (currentGC + i) * 0.15;
 
-                if (roll >= 1 - f) {
+                if (roll >= 1 - chance) {
                     return i;
                 }
             }
@@ -246,7 +226,7 @@ Game.registerMod("fthof_planner_internal", {
             return "20+";
         }
 
-        function stateKey() {
+        function getState() {
             var M = getM();
 
             if (!M) return "NO_GRIMOIRE";
@@ -258,12 +238,12 @@ Game.registerMod("fthof_planner_internal", {
                 Game.seed || "",
                 M.spellsCastTotal,
                 Game.season || "",
-                Game.chimeType || 0,
-                Game.ascensionMode || 0,
                 g ? g.n : 0,
-                g ? g.spawned : 0,
                 Game.BuildingsOwned || 0,
-                Game.hasBuff("Dragonflight") ? 1 : 0
+                Game.hasBuff("Dragonflight") ? 1 : 0,
+                Game.hasBuff("Magic adept") ? 1 : 0,
+                Game.hasBuff("Magic inept") ? 1 : 0,
+                Game.hasBuff("Diminish ineptitude") ? 1 : 0
             ].join("|");
         }
 
@@ -279,17 +259,16 @@ Game.registerMod("fthof_planner_internal", {
                     return;
                 }
 
-                var key = stateKey();
+                var state = getState();
 
                 if (
-                    key === Game.fthof_planner_last_state &&
+                    state === Game.fthof_planner_last_state &&
                     Game.fthof_planner_html_cache
                 ) {
                     return;
                 }
 
-                Game.fthof_planner_last_state = key;
-                Game.fthof_planner_last_count = M.spellsCastTotal;
+                Game.fthof_planner_last_state = state;
 
                 var seed = Game.seed || "unknown";
                 var count = M.spellsCastTotal;
@@ -298,17 +277,11 @@ Game.registerMod("fthof_planner_internal", {
                         Game.shimmerTypes["golden"];
 
                 var gc = g ? g.n : 0;
-                var fc = failChance();
+                var failChance = getFailChance();
+                var dragon = Game.hasBuff("Dragonflight");
+                var currentSeason = isSeason();
 
-                var dragon =
-                    Game.hasBuff("Dragonflight");
-
-                var currentSeason =
-                    seasonal();
-
-                var html = "";
-
-                html +=
+                var html =
                     "<div style='text-align:center;margin-bottom:10px'>" +
                     "<h3 style='color:#ecc45e;font-size:18px;margin:0'>" +
                     "FtHoF プランナー " +
@@ -333,19 +306,19 @@ Game.registerMod("fthof_planner_internal", {
                     gc +
                     "</b>　Backfire: " +
                     "<b style='color:#f88'>" +
-                    (fc * 100).toFixed(2) +
+                    (failChance * 100).toFixed(2) +
                     "%</b></p>" +
 
                     "<p style='font-size:10px;color:#999;margin:4px 0 8px'>" +
                     "Season: <b style='color:#ddd'>" +
                     esc(Game.season || "none") +
-                    "</b>　Chime: <b style='color:#ddd'>" +
-                    (Game.chimeType == 1 ? "ON" : "OFF") +
                     "</b>　Dragonflight: <b style='color:" +
                     (dragon ? "#6f6" : "#aaa") +
                     "'>" +
                     (dragon ? "ON" : "OFF") +
-                    "</b></p></div>";
+                    "</b></p>" +
+
+                    "</div>";
 
                 html +=
                     "<table style='width:100%;border-collapse:collapse;font-size:11px;text-align:center'>" +
@@ -363,10 +336,9 @@ Game.registerMod("fthof_planner_internal", {
                     "</tr></thead><tbody>";
 
                 for (var i = 1; i <= FORECAST; i++) {
-
-                    var futureCast = count + i;
+                    var spellNumber = count + i - 1;
                     var futureSeed =
-                        seed + "/" + (futureCast - 1);
+                        seed + "/" + spellNumber;
 
                     var normal =
                         simulate(
@@ -374,23 +346,27 @@ Game.registerMod("fthof_planner_internal", {
                             currentSeason
                         );
 
-                    var season =
+                    var fourSeason =
                         simulate(
                             futureSeed,
                             true
                         );
 
-                    var roll = normal.roll;
                     var normalColor =
                         normal.success ? "#6f6" : "#f55";
+
                     var seasonColor =
-                        season.success ? "#ffd700" : "#ffb6c1";
+                        fourSeason.success
+                            ? "#ffd700"
+                            : "#ffb6c1";
 
                     html +=
                         "<tr style='border-bottom:1px solid #333;background:" +
-                        (i % 2 === 0
-                            ? "rgba(255,255,255,0.03)"
-                            : "transparent") +
+                        (
+                            i % 2 === 0
+                                ? "rgba(255,255,255,0.03)"
+                                : "transparent"
+                        ) +
                         "'>" +
 
                         "<td style='padding:6px;text-align:left;color:#aaa'>" +
@@ -398,39 +374,41 @@ Game.registerMod("fthof_planner_internal", {
                         "</td>" +
 
                         "<td style='padding:6px;font-weight:bold'>" +
-                        futureCast +
+                        spellNumber +
                         "</td>" +
 
                         "<td style='padding:6px;font-family:monospace;color:#add8e6'>" +
-                        roll.toFixed(6) +
+                        normal.roll.toFixed(6) +
                         "</td>" +
 
                         "<td style='padding:6px;color:" +
                         normalColor +
                         "'><b>" +
-                        normal.result.name +
-                        "</b><br><span style='font-size:9px;color:#888'>" +
+                        normal.result +
+                        "</b><br>" +
+                        "<span style='font-size:9px;color:#888'>" +
                         (normal.success ? "Success" : "Backfire") +
                         "</span></td>" +
 
                         "<td style='padding:6px;color:" +
                         seasonColor +
                         "'><b>" +
-                        season.result.name +
-                        "</b><br><span style='font-size:9px;color:#888'>" +
-                        (season.success ? "Success" : "Backfire") +
+                        fourSeason.result +
+                        "</b><br>" +
+                        "<span style='font-size:9px;color:#888'>" +
+                        (fourSeason.success ? "Success" : "Backfire") +
                         "</span></td>" +
 
                         "<td style='padding:6px;color:#f55'>" +
-                        (normal.success ? "-" : normal.result.name) +
+                        (normal.success ? "-" : normal.result) +
                         "</td>" +
 
                         "<td style='padding:6px;color:#ffb6c1'>" +
-                        (season.success ? "-" : season.result.name) +
+                        (fourSeason.success ? "-" : fourSeason.result) +
                         "</td>" +
 
                         "<td style='padding:6px;color:#ff7f50;font-weight:bold'>" +
-                        requiredGC(roll) +
+                        requiredGC(normal.roll) +
                         "</td>" +
 
                         "</tr>";
@@ -440,17 +418,13 @@ Game.registerMod("fthof_planner_internal", {
                     "</tbody></table>" +
 
                     "<div style='margin-top:8px;padding-top:7px;border-top:1px dashed #555;font-size:9px;color:#888'>" +
-                    "通常 = 現在の状態　/　4季 = 季節RNG追加状態" +
+                    "通常 = 現在の季節状態　/　4季 = Easter・Valentine のRNG状態" +
                     "</div>";
 
                 Game.fthof_planner_html_cache = html;
 
             } catch (e) {
-
-                console.error(
-                    "[FtHoF Planner]",
-                    e
-                );
+                console.error("[FtHoF Planner]", e);
 
                 Game.fthof_planner_html_cache =
                     "<div style='padding:10px;color:#f66;font-family:monospace'>" +
@@ -465,17 +439,12 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function inject() {
-
-            if (Game.onMenu !== "prefs") {
-                return;
-            }
+            if (Game.onMenu !== "prefs") return;
 
             var menu =
                 document.getElementById("menu");
 
-            if (!menu) {
-                return;
-            }
+            if (!menu) return;
 
             if (!Game.fthof_planner_html_cache) {
                 calculate();
@@ -487,7 +456,6 @@ Game.registerMod("fthof_planner_internal", {
                 );
 
             if (!div) {
-
                 div =
                     document.createElement("div");
 
@@ -511,23 +479,17 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function refresh() {
-
             if (timer) {
                 clearTimeout(timer);
             }
 
             timer =
                 setTimeout(function() {
-
                     timer = null;
-
-                    Game.fthof_planner_last_count = -1;
                     Game.fthof_planner_last_state = "";
                     Game.fthof_planner_html_cache = "";
-
                     calculate();
                     inject();
-
                 }, 20);
         }
 
@@ -536,7 +498,6 @@ Game.registerMod("fthof_planner_internal", {
 
         Game.UpdateMenu =
             function() {
-
                 oldUpdateMenu.apply(
                     this,
                     arguments
@@ -552,7 +513,6 @@ Game.registerMod("fthof_planner_internal", {
             typeof Game.registerSpellCastHook ===
             "function"
         ) {
-
             Game.registerSpellCastHook(
                 function() {
                     refresh();
@@ -561,23 +521,23 @@ Game.registerMod("fthof_planner_internal", {
         }
 
         function hookCastSpell() {
-
             var M = getM();
 
-            if (!M ||
-                wrappedM === M ||
-                typeof M.castSpell !== "function") {
+            if (
+                !M ||
+                hookedM === M ||
+                typeof M.castSpell !== "function"
+            ) {
                 return;
             }
 
-            wrappedM = M;
+            hookedM = M;
 
             var oldCastSpell =
                 M.castSpell;
 
             M.castSpell =
                 function() {
-
                     var result =
                         oldCastSpell.apply(
                             this,
@@ -599,13 +559,11 @@ Game.registerMod("fthof_planner_internal", {
         }, 500);
 
         setInterval(function() {
-
             hookCastSpell();
 
             if (Game.onMenu === "prefs") {
                 inject();
             }
-
         }, 500);
     },
 
