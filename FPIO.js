@@ -212,6 +212,7 @@ Game.registerMod("fthof_planner_internal", {
             div.innerHTML = Game.fthof_planner_html_cache;
             menu.appendChild(div);
         }
+        
         function predictSuccessFtHoF(isSeasonMod, hasDragonflight, localRng) {
             localRng();
             
