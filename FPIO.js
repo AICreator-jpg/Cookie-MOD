@@ -1,341 +1,133 @@
-/*
- * FtHoF Planner Internal
- * MOD version: 1.1.0
- * Target Cookie Clicker version: 2.058
- *
- * RNG model:
- *   Game.seed + "/" + futureSpellsCastTotal
- *
- * Important:
- *   - Uses new Math.seedrandom(seed) so the game's global Math.random()
- *     is NOT modified by the forecast.
- *   - Reproduces the RNG consumption of the Golden Cookie created by
- *     Force the Hand of Fate.
- */
-
 Game.registerMod("fthof_planner_internal", {
-
     init: function() {
-
-        var PLANNER_VERSION = "1.1.0";
-        var TARGET_GAME_VERSION = "2.058";
-        var FORECAST_LENGTH = 10;
+        var VERSION = "1.2.0";
+        var GAME_VERSION = "2.058";
+        var FORECAST = 10;
 
         Game.fthof_planner_html_cache = "";
         Game.fthof_planner_last_count = -1;
         Game.fthof_planner_last_state = "";
 
-        var recalculationTimer = null;
-        var hookedMinigame = null;
-        var originalCastSpell = null;
+        var timer = null;
+        var wrappedM = null;
 
-        /*
-         * ------------------------------------------------------------
-         * Utility
-         * ------------------------------------------------------------
-         */
-
-        function getWizardMinigame() {
+        function getM() {
             var tower = Game.Objects && Game.Objects["Wizard tower"];
             return tower && tower.minigame ? tower.minigame : null;
         }
 
-        function getFtHoFSpell() {
-            var M = getWizardMinigame();
-            if (!M || !M.spells) return null;
-            return M.spells["hand of fate"] || null;
+        function getSpell() {
+            var M = getM();
+            return M && M.spells ? M.spells["hand of fate"] : null;
         }
 
-        function isSeasonalRngSeason() {
-            /*
-             * In the Golden Cookie shimmer initialization,
-             * Valentine's and Easter consume one additional RNG
-             * to select the seasonal cookie graphic.
-             *
-             * Other seasons do not consume this RNG here.
-             */
-            return Game.season === "valentines" ||
-                   Game.season === "easter";
+        function esc(v) {
+            return String(v)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
         }
 
-        function isChimeRngActive() {
-            /*
-             * Golden Cookie shimmer initialization:
-             *
-             * if (!this.spawned &&
-             *     Game.chimeType == 1 &&
-             *     Game.ascensionMode != 1)
-             *
-             *     PlaySound(...)
-             *
-             * The important part for FtHoF is that PlaySound itself
-             * does not consume RNG; the shimmer initialization's
-             * random-state behavior is represented by the planner
-             * RNG alignment.
-             *
-             * "spawned" is the timer-spawned Golden Cookie state.
-             */
-            var golden = Game.shimmerTypes &&
-                         Game.shimmerTypes["golden"];
-
-            if (!golden) return false;
-
-            return Game.chimeType === 1 &&
-                   Game.ascensionMode !== 1 &&
-                   !golden.spawned;
-        }
-
-        function getSetupRandomCount() {
-            /*
-             * Golden Cookie creation consumes:
-             *
-             *   1. seasonal graphic RNG (Valentine/Easter only)
-             *   2. x-position RNG
-             *   3. y-position RNG
-             *
-             * The chime condition affects the alignment used by
-             * existing FtHoF planners as well.
-             *
-             * Base = 2 (x + y)
-             */
-            var count = 2;
-
-            if (isSeasonalRngSeason()) {
-                count++;
-            }
-
-            if (isChimeRngActive()) {
-                count++;
-            }
-
-            return count;
-        }
-
-        /*
-         * ------------------------------------------------------------
-         * Local seedrandom
-         * ------------------------------------------------------------
-         *
-         * Cookie Clicker ships seedrandom as Math.seedrandom.
-         *
-         * Using "new" is important:
-         *
-         *     new Math.seedrandom(seed)
-         *
-         * creates an independent RNG and does NOT replace Math.random.
-         */
-
-        function createFtHoFRng(seed) {
+        function rng(seed) {
             if (typeof Math.seedrandom !== "function") {
-                throw new Error(
-                    "FtHoF Planner: Math.seedrandom is not available."
-                );
+                throw new Error("Math.seedrandom が見つかりません");
             }
-
             return new Math.seedrandom(seed);
         }
 
-        function chooseWithRng(array, rng) {
-            if (!array || array.length === 0) {
-                return null;
-            }
-
-            return array[Math.floor(rng() * array.length)];
+        function choose(a, r) {
+            return a[Math.floor(r() * a.length)];
         }
 
-        /*
-         * ------------------------------------------------------------
-         * Backfire chance
-         * ------------------------------------------------------------
-         */
+        function seasonal() {
+            return Game.season === "easter" ||
+                   Game.season === "valentines";
+        }
 
-        function getCurrentBackfireChance() {
-            var M = getWizardMinigame();
-            var spell = getFtHoFSpell();
+        function chime() {
+            var g = Game.shimmerTypes &&
+                    Game.shimmerTypes["golden"];
+
+            return !!(
+                g &&
+                !g.spawned &&
+                Game.chimeType == 1 &&
+                Game.ascensionMode != 1
+            );
+        }
+
+        function failChance() {
+            var M = getM();
+            var spell = getSpell();
 
             if (!M || !spell) return 0.15;
 
-            /*
-             * Use the game's own calculation whenever possible.
-             *
-             * For FtHoF this includes:
-             *   - base 15%
-             *   - Magic adept
-             *   - Magic inept
-             *   - Supreme Intellect
-             *   - +15% per existing Golden Cookie
-             */
             try {
                 return M.getFailChance(spell);
             } catch (e) {
-                var failChance = 0.15;
+                var f = 0.15;
 
-                if (Game.hasBuff("Magic adept")) {
-                    failChance *= 0.1;
-                }
-
-                if (Game.hasBuff("Magic inept")) {
-                    failChance *= 5;
-                }
+                if (Game.hasBuff("Magic adept")) f *= 0.1;
+                if (Game.hasBuff("Magic inept")) f *= 5;
 
                 if (Game.auraMult) {
-                    failChance *= 1 + 0.1 * Game.auraMult("Supreme Intellect");
+                    f *= 1 + 0.1 * Game.auraMult("Supreme Intellect");
                 }
 
-                var golden = Game.shimmerTypes &&
-                             Game.shimmerTypes["golden"];
+                var g = Game.shimmerTypes &&
+                        Game.shimmerTypes["golden"];
 
-                if (golden) {
-                    failChance += 0.15 * golden.n;
-                }
+                if (g) f += 0.15 * g.n;
 
-                return failChance;
+                return f;
             }
         }
 
-        /*
-         * ------------------------------------------------------------
-         * FtHoF RNG simulation
-         * ------------------------------------------------------------
-         */
+        function simulate(seed, forceSeason) {
+            var r = rng(seed);
+            var backfireRoll = r();
+            var fc = failChance();
+            var success = backfireRoll < 1 - fc;
 
-        function simulateFtHoF(seedString, forceSeasonalMode) {
+            var offset = 2;
 
-            var rng = createFtHoFRng(seedString);
-
-            /*
-             * The first RNG value is ALWAYS the spell success/failure
-             * decision.
-             *
-             * This is the important value that the previous version
-             * displayed incorrectly as allSpells[1].
-             */
-            var backfireRoll = rng();
-
-            /*
-             * Normally use the current Dragonflight state.
-             *
-             * For the "Seasonal" preview, only season RNG alignment
-             * is changed. Dragonflight remains the actual current
-             * Dragonflight state.
-             */
-            var dragonflight = Game.hasBuff &&
-                               Game.hasBuff("Dragonflight");
-
-            /*
-             * We need to simulate the Golden Cookie creation BEFORE
-             * the FtHoF effect selection.
-             *
-             * In the actual game the shimmer initialization consumes
-             * RNG for:
-             *
-             *   - seasonal graphic selection
-             *   - x
-             *   - y
-             *
-             * and the relevant chime alignment.
-             *
-             * For the seasonal preview we force the seasonal branch,
-             * while the normal preview uses the current season.
-             */
-            var actualSeasonal = isSeasonalRngSeason();
-
-            var setupRandomCount = 2;
-
-            if (forceSeasonalMode) {
-                setupRandomCount++;
-            } else if (actualSeasonal) {
-                setupRandomCount++;
+            if (forceSeason || seasonal()) {
+                offset++;
             }
 
-            if (isChimeRngActive()) {
-                setupRandomCount++;
+            if (chime()) {
+                offset++;
             }
 
-            for (var setup = 0; setup < setupRandomCount; setup++) {
-                rng();
+            for (var i = 0; i < offset; i++) {
+                r();
             }
 
-            /*
-             * --------------------------------------------------------
-             * Success / Backfire
-             * --------------------------------------------------------
-             */
-
-            var failChance = getCurrentBackfireChance();
-
-            /*
-             * IMPORTANT:
-             *
-             * The game checks:
-             *
-             * Math.random() < (1 - failChance)
-             *
-             * using the FIRST RNG value.
-             */
-            var success = backfireRoll < (1 - failChance);
-
-            var result;
-
-            if (success) {
-                result = simulateFtHoFSuccess(
-                    rng,
-                    dragonflight
-                );
-            } else {
-                result = simulateFtHoFFail(rng);
-            }
+            var result = success
+                ? successResult(r)
+                : failResult(r);
 
             return {
                 success: success,
-                backfireRoll: backfireRoll,
-                failChance: failChance,
+                roll: backfireRoll,
+                failChance: fc,
                 result: result
             };
         }
 
-        /*
-         * ------------------------------------------------------------
-         * Success side
-         * ------------------------------------------------------------
-         *
-         * This mirrors the current 2.058 FtHoF win() function:
-         *
-         * choices.push('frenzy','multiply cookies');
-         *
-         * if (!Game.hasBuff('Dragonflight'))
-         *     choices.push('click frenzy');
-         *
-         * if (Math.random()<0.1)
-         *     choices.push('cookie storm','cookie storm','blab');
-         *
-         * if (Game.BuildingsOwned>=10 && Math.random()<0.25)
-         *     choices.push('building special');
-         *
-         * if (Math.random()<0.15)
-         *     choices=['cookie storm drop'];
-         *
-         * if (Math.random()<0.0001)
-         *     choices.push('free sugar lump');
-         *
-         * choose(choices);
-         *
-         * if cookie storm drop:
-         *     Math.random()*0.75+0.25
-         */
-
-        function simulateFtHoFSuccess(rng, dragonflight) {
-
+        function successResult(r) {
             var choices = [
                 "frenzy",
                 "multiply cookies"
             ];
 
-            if (!dragonflight) {
+            if (!Game.hasBuff("Dragonflight")) {
                 choices.push("click frenzy");
             }
 
-            if (rng() < 0.1) {
+            if (r() < 0.1) {
                 choices.push(
                     "cookie storm",
                     "cookie storm",
@@ -343,339 +135,480 @@ Game.registerMod("fthof_planner_internal", {
                 );
             }
 
-            if (Game.BuildingsOwned >= 10 && rng() < 0.25) {
+            if (
+                Game.BuildingsOwned >= 10 &&
+                r() < 0.25
+            ) {
                 choices.push("building special");
             }
 
-            if (rng() < 0.15) {
-                choices = [
-                    "cookie storm drop"
-                ];
+            if (r() < 0.15) {
+                choices = ["cookie storm drop"];
             }
 
-            if (rng() < 0.0001) {
+            if (r() < 0.0001) {
                 choices.push("free sugar lump");
             }
 
-            var choice = chooseWithRng(choices, rng);
-
-            /*
-             * The actual game consumes another random number when
-             * cookie storm drop gets its sizeMult.
-             */
-            var sizeRoll = null;
+            var choice = choose(choices, r);
+            var size = null;
 
             if (choice === "cookie storm drop") {
-                sizeRoll = rng();
-
-                return {
-                    name: "Cookie Storm Drop",
-                    key: choice,
-                    sizeMult: sizeRoll * 0.75 + 0.25
-                };
+                size = r() * 0.75 + 0.25;
             }
 
             return {
-                name: formatFtHoFResult(choice, false),
                 key: choice,
-                sizeMult: null
+                name: format(choice),
+                size: size
             };
         }
 
-        /*
-         * ------------------------------------------------------------
-         * Failure side
-         * ------------------------------------------------------------
-         */
-
-        function simulateFtHoFFail(rng) {
-
+        function failResult(r) {
             var choices = [
                 "clot",
                 "ruin cookies"
             ];
 
-            if (rng() < 0.1) {
+            if (r() < 0.1) {
                 choices.push(
                     "cursed finger",
                     "blood frenzy"
                 );
             }
 
-            if (rng() < 0.003) {
-                choices.push(
-                    "free sugar lump"
-                );
+            if (r() < 0.003) {
+                choices.push("free sugar lump");
             }
 
-            if (rng() < 0.1) {
-                choices = [
-                    "blab"
-                ];
+            if (r() < 0.1) {
+                choices = ["blab"];
             }
 
-            var choice = chooseWithRng(choices, rng);
+            var choice = choose(choices, r);
 
             return {
-                name: formatFtHoFResult(choice, true),
                 key: choice,
-                sizeMult: null
+                name: format(choice),
+                size: null
             };
         }
 
-        /*
-         * ------------------------------------------------------------
-         * Display names
-         * ------------------------------------------------------------
-         */
-
-        function formatFtHoFResult(choice, fail) {
-
-            switch (choice) {
-
+        function format(c) {
+            switch (c) {
                 case "frenzy":
                     return "Frenzy";
-
                 case "multiply cookies":
                     return "Lucky";
-
                 case "click frenzy":
                     return "Click Frenzy";
-
                 case "building special":
                     return "Building Special";
-
                 case "cookie storm":
                     return "Cookie Storm";
-
                 case "cookie storm drop":
                     return "Cookie Storm Drop";
-
                 case "free sugar lump":
                     return "Sugar Lump";
-
                 case "blab":
                     return "Blab";
-
                 case "clot":
                     return "Clot";
-
                 case "ruin cookies":
                     return "Ruin";
-
                 case "cursed finger":
                     return "Cursed Finger";
-
                 case "blood frenzy":
                     return "Elder Frenzy";
-
                 default:
-                    return choice;
+                    return c;
             }
         }
 
-        /*
-         * ------------------------------------------------------------
-         * Backfire threshold / GC count
-         * ------------------------------------------------------------
-         *
-         * Base FtHoF backfire chance is usually 15%.
-         * Each existing Golden Cookie adds 15 percentage points.
-         *
-         * This function tells how many additional Golden Cookies would
-         * be required to make this particular roll backfire.
-         */
-        function getRequiredGCsForBackfire(backfireRoll) {
+        function requiredGC(roll) {
+            var g = Game.shimmerTypes &&
+                    Game.shimmerTypes["golden"];
 
-            var M = getWizardMinigame();
-            var spell = getFtHoFSpell();
+            if (!g) return "-";
 
-            if (!M || !spell) {
-                return "-";
-            }
+            var current = g.n || 0;
+            var currentFail = failChance();
+            var base = currentFail - current * 0.15;
 
-            var baseChance;
+            for (var i = 0; i <= 20; i++) {
+                var f = base + (current + i) * 0.15;
 
-            try {
-                baseChance = M.getFailChance(spell);
-            } catch (e) {
-                baseChance = 0.15;
-            }
-
-            /*
-             * Current golden cookies are already included in
-             * M.getFailChance() for FtHoF.
-             */
-            var golden = Game.shimmerTypes &&
-                         Game.shimmerTypes["golden"];
-
-            var currentGCs = golden ? golden.n : 0;
-
-            /*
-             * Find the minimum total GC count which makes:
-             *
-             * backfireRoll >= 1 - failChance
-             */
-            for (var totalGCs = currentGCs; totalGCs <= 20; totalGCs++) {
-
-                var failChanceWithoutCurrentGCIncrement =
-                    baseChance - 0.15 * currentGCs;
-
-                /*
-                 * Clamp because buffs/aura can make the non-GC portion
-                 * differ from exactly 0.15.
-                 */
-                var testChance =
-                    failChanceWithoutCurrentGCIncrement +
-                    0.15 * totalGCs;
-
-                if (backfireRoll >= 1 - testChance) {
-                    return Math.max(
-                        0,
-                        totalGCs - currentGCs
-                    );
+                if (roll >= 1 - f) {
+                    return i;
                 }
             }
 
-            return "6+";
+            return "20+";
         }
 
-        /*
-         * ------------------------------------------------------------
-         * State key
-         * ------------------------------------------------------------
-         */
+        function stateKey() {
+            var M = getM();
 
-        function getPlannerStateKey() {
+            if (!M) return "NO_GRIMOIRE";
 
-            var M = getWizardMinigame();
-
-            if (!M) {
-                return "no-grimoire";
-            }
-
-            var golden = Game.shimmerTypes &&
-                         Game.shimmerTypes["golden"];
+            var g = Game.shimmerTypes &&
+                    Game.shimmerTypes["golden"];
 
             return [
                 Game.seed || "",
                 M.spellsCastTotal,
                 Game.season || "",
-                Game.chimeType,
-                Game.ascensionMode,
-                golden ? golden.n : 0,
-                golden ? golden.spawned : 0,
-                Game.hasBuff && Game.hasBuff("Dragonflight") ? 1 : 0,
-                Game.BuildingsOwned
+                Game.chimeType || 0,
+                Game.ascensionMode || 0,
+                g ? g.n : 0,
+                g ? g.spawned : 0,
+                Game.BuildingsOwned || 0,
+                Game.hasBuff("Dragonflight") ? 1 : 0
             ].join("|");
         }
 
-        /*
-         * ------------------------------------------------------------
-         * Planner calculation
-         * ------------------------------------------------------------
-         */
+        function calculate() {
+            try {
+                var M = getM();
 
-        function calculateFtHoFPlannerData() {
+                if (!M) {
+                    Game.fthof_planner_html_cache =
+                        "<div style='padding:10px;color:#f66;text-align:center'>" +
+                        "Wizard Tower / Grimoire が読み込まれていません。" +
+                        "</div>";
+                    return;
+                }
 
-            var M = getWizardMinigame();
+                var key = stateKey();
 
-            if (!M) {
-                Game.fthof_planner_html_cache = "";
+                if (
+                    key === Game.fthof_planner_last_state &&
+                    Game.fthof_planner_html_cache
+                ) {
+                    return;
+                }
+
+                Game.fthof_planner_last_state = key;
+                Game.fthof_planner_last_count = M.spellsCastTotal;
+
+                var seed = Game.seed || "unknown";
+                var count = M.spellsCastTotal;
+
+                var g = Game.shimmerTypes &&
+                        Game.shimmerTypes["golden"];
+
+                var gc = g ? g.n : 0;
+                var fc = failChance();
+
+                var dragon =
+                    Game.hasBuff("Dragonflight");
+
+                var currentSeason =
+                    seasonal();
+
+                var html = "";
+
+                html +=
+                    "<div style='text-align:center;margin-bottom:10px'>" +
+                    "<h3 style='color:#ecc45e;font-size:18px;margin:0'>" +
+                    "FtHoF プランナー " +
+                    "<span style='font-size:10px;color:#888'>v" +
+                    VERSION +
+                    "</span></h3>" +
+
+                    "<p style='font-size:11px;color:#ccc;margin:5px 0'>" +
+                    "Cookie Clicker <b style='color:#add8e6'>" +
+                    GAME_VERSION +
+                    "</b>　Seed: " +
+                    "<b style='color:#ecc45e;font-family:monospace'>" +
+                    esc(seed) +
+                    "</b></p>" +
+
+                    "<p style='font-size:11px;color:#ccc;margin:5px 0'>" +
+                    "現在の総詠唱回数: " +
+                    "<b style='color:#fff;font-size:14px'>" +
+                    count +
+                    "</b>　場のGC: " +
+                    "<b style='color:#ff7f50'>" +
+                    gc +
+                    "</b>　Backfire: " +
+                    "<b style='color:#f88'>" +
+                    (fc * 100).toFixed(2) +
+                    "%</b></p>" +
+
+                    "<p style='font-size:10px;color:#999;margin:4px 0 8px'>" +
+                    "Season: <b style='color:#ddd'>" +
+                    esc(Game.season || "none") +
+                    "</b>　Chime: <b style='color:#ddd'>" +
+                    (Game.chimeType == 1 ? "ON" : "OFF") +
+                    "</b>　Dragonflight: <b style='color:" +
+                    (dragon ? "#6f6" : "#aaa") +
+                    "'>" +
+                    (dragon ? "ON" : "OFF") +
+                    "</b></p></div>";
+
+                html +=
+                    "<table style='width:100%;border-collapse:collapse;font-size:11px;text-align:center'>" +
+                    "<thead><tr style='border-bottom:1px solid #555;color:#add8e6'>" +
+
+                    "<th style='padding:4px;text-align:left'>#</th>" +
+                    "<th style='padding:4px'>総詠唱</th>" +
+                    "<th style='padding:4px'>Random Seed</th>" +
+                    "<th style='padding:4px;color:#6f6'>通常</th>" +
+                    "<th style='padding:4px;color:#ffd700'>4季</th>" +
+                    "<th style='padding:4px;color:#f55'>通常 Backfire</th>" +
+                    "<th style='padding:4px;color:#ffb6c1'>4季 Backfire</th>" +
+                    "<th style='padding:4px;color:#ff7f50'>GC</th>" +
+
+                    "</tr></thead><tbody>";
+
+                for (var i = 1; i <= FORECAST; i++) {
+
+                    var futureCast = count + i;
+                    var futureSeed =
+                        seed + "/" + (futureCast - 1);
+
+                    var normal =
+                        simulate(
+                            futureSeed,
+                            currentSeason
+                        );
+
+                    var season =
+                        simulate(
+                            futureSeed,
+                            true
+                        );
+
+                    var roll = normal.roll;
+                    var normalColor =
+                        normal.success ? "#6f6" : "#f55";
+                    var seasonColor =
+                        season.success ? "#ffd700" : "#ffb6c1";
+
+                    html +=
+                        "<tr style='border-bottom:1px solid #333;background:" +
+                        (i % 2 === 0
+                            ? "rgba(255,255,255,0.03)"
+                            : "transparent") +
+                        "'>" +
+
+                        "<td style='padding:6px;text-align:left;color:#aaa'>" +
+                        "+" + i +
+                        "</td>" +
+
+                        "<td style='padding:6px;font-weight:bold'>" +
+                        futureCast +
+                        "</td>" +
+
+                        "<td style='padding:6px;font-family:monospace;color:#add8e6'>" +
+                        roll.toFixed(6) +
+                        "</td>" +
+
+                        "<td style='padding:6px;color:" +
+                        normalColor +
+                        "'><b>" +
+                        normal.result.name +
+                        "</b><br><span style='font-size:9px;color:#888'>" +
+                        (normal.success ? "Success" : "Backfire") +
+                        "</span></td>" +
+
+                        "<td style='padding:6px;color:" +
+                        seasonColor +
+                        "'><b>" +
+                        season.result.name +
+                        "</b><br><span style='font-size:9px;color:#888'>" +
+                        (season.success ? "Success" : "Backfire") +
+                        "</span></td>" +
+
+                        "<td style='padding:6px;color:#f55'>" +
+                        (normal.success ? "-" : normal.result.name) +
+                        "</td>" +
+
+                        "<td style='padding:6px;color:#ffb6c1'>" +
+                        (season.success ? "-" : season.result.name) +
+                        "</td>" +
+
+                        "<td style='padding:6px;color:#ff7f50;font-weight:bold'>" +
+                        requiredGC(roll) +
+                        "</td>" +
+
+                        "</tr>";
+                }
+
+                html +=
+                    "</tbody></table>" +
+
+                    "<div style='margin-top:8px;padding-top:7px;border-top:1px dashed #555;font-size:9px;color:#888'>" +
+                    "通常 = 現在の状態　/　4季 = 季節RNG追加状態" +
+                    "</div>";
+
+                Game.fthof_planner_html_cache = html;
+
+            } catch (e) {
+
+                console.error(
+                    "[FtHoF Planner]",
+                    e
+                );
+
+                Game.fthof_planner_html_cache =
+                    "<div style='padding:10px;color:#f66;font-family:monospace'>" +
+                    "<b>FtHoF Planner Error</b><br><br>" +
+                    esc(
+                        e && e.message
+                            ? e.message
+                            : String(e)
+                    ) +
+                    "</div>";
+            }
+        }
+
+        function inject() {
+
+            if (Game.onMenu !== "prefs") {
                 return;
             }
 
-            var stateKey = getPlannerStateKey();
+            var menu =
+                document.getElementById("menu");
 
-            if (
-                stateKey === Game.fthof_planner_last_state &&
-                Game.fthof_planner_html_cache !== ""
-            ) {
+            if (!menu) {
                 return;
             }
 
-            Game.fthof_planner_last_state = stateKey;
-            Game.fthof_planner_last_count = M.spellsCastTotal;
+            if (!Game.fthof_planner_html_cache) {
+                calculate();
+            }
 
-            var trueSeed = Game.seed || "unknown";
-            var spellsCount = M.spellsCastTotal;
+            var div =
+                document.getElementById(
+                    "custom-internal-fthof"
+                );
 
-            var currentGoldenCookies =
-                Game.shimmerTypes &&
-                Game.shimmerTypes["golden"]
-                    ? Game.shimmerTypes["golden"].n
-                    : 0;
+            if (!div) {
 
-            var currentFailChance = getCurrentBackfireChance();
+                div =
+                    document.createElement("div");
 
-            /*
-             * Current Dragonflight state.
-             */
-            var dragonflightActive =
-                Game.hasBuff &&
-                Game.hasBuff("Dragonflight");
+                div.id =
+                    "custom-internal-fthof";
 
-            /*
-             * Determine whether current state is one of the two
-             * season-sensitive FtHoF states.
-             */
-            var currentSeasonal =
-                isSeasonalRngSeason();
+                div.className =
+                    "listing";
 
-            var html = `
-                <div style="
-                    text-align:center;
-                    margin-bottom:10px;
-                ">
-                    <h3 style="
-                        color:#ecc45e;
-                        font-size:18px;
-                        margin:0;
-                    ">
-                        FtHoF プランナー
-                        <span style="
-                            font-size:10px;
-                            color:#888;
-                        ">
-                            v${PLANNER_VERSION}
-                        </span>
-                    </h3>
+                div.style.cssText =
+                    "padding:15px;" +
+                    "border-top:1px dashed #666;" +
+                    "margin-top:15px;" +
+                    "background:rgba(0,0,0,0.4);";
 
-                    <p style="
-                        font-size:11px;
-                        color:#ccc;
-                        margin:5px 0;
-                    ">
-                        Cookie Clicker:
-                        <b style="color:#add8e6;">
-                            ${TARGET_GAME_VERSION}
-                        </b>
-                        &nbsp;|&nbsp;
-                        Seed:
-                        <b style="
-                            color:#ecc45e;
-                            font-family:monospace;
-                            font-size:12px;
-                        ">
-                            ${escapeHtml(String(trueSeed))}
-                        </b>
-                    </p>
+                menu.appendChild(div);
+            }
 
-                    <p style="
-                        font-size:11px;
-                        color:#ccc;
-                        margin:5px 0;
-                    ">
-                        現在の総詠唱回数:
-                        <b style="
-                            color:#fff;
-                            font-size:14px;
-                        ">
-                            ${spellsCount}
-                        </b>
-                        &nbsp;|&nbsp;
-                        場上GC:
-                        <b style="color:#ff7f50;">
-                            ${currentGoldenCookies}
-                        </b>
-                       
+            div.innerHTML =
+                Game.fthof_planner_html_cache;
+        }
+
+        function refresh() {
+
+            if (timer) {
+                clearTimeout(timer);
+            }
+
+            timer =
+                setTimeout(function() {
+
+                    timer = null;
+
+                    Game.fthof_planner_last_count = -1;
+                    Game.fthof_planner_last_state = "";
+                    Game.fthof_planner_html_cache = "";
+
+                    calculate();
+                    inject();
+
+                }, 20);
+        }
+
+        var oldUpdateMenu =
+            Game.UpdateMenu;
+
+        Game.UpdateMenu =
+            function() {
+
+                oldUpdateMenu.apply(
+                    this,
+                    arguments
+                );
+
+                setTimeout(
+                    inject,
+                    0
+                );
+            };
+
+        if (
+            typeof Game.registerSpellCastHook ===
+            "function"
+        ) {
+
+            Game.registerSpellCastHook(
+                function() {
+                    refresh();
+                }
+            );
+        }
+
+        function hookCastSpell() {
+
+            var M = getM();
+
+            if (!M ||
+                wrappedM === M ||
+                typeof M.castSpell !== "function") {
+                return;
+            }
+
+            wrappedM = M;
+
+            var oldCastSpell =
+                M.castSpell;
+
+            M.castSpell =
+                function() {
+
+                    var result =
+                        oldCastSpell.apply(
+                            this,
+                            arguments
+                        );
+
+                    refresh();
+
+                    return result;
+                };
+        }
+
+        hookCastSpell();
+
+        setTimeout(function() {
+            hookCastSpell();
+            calculate();
+            inject();
+        }, 500);
+
+        setInterval(function() {
+
+            hookCastSpell();
+
+            if (Game.onMenu === "prefs") {
+                inject();
+            }
+
+        }, 500);
+    },
+
+    save: function() {},
+    load: function() {}
+});
